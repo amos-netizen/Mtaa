@@ -1,0 +1,497 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+// Note: SQLite doesn't support enums, so we use String fields
+// Valid values for role: "REGULAR_MEMBER", "NEIGHBORHOOD_LEAD", "BUSINESS", "PUBLIC_AGENCY", "ADMIN"
+// Valid values for verificationStatus: "PENDING", "VERIFIED", "REJECTED"
+
+model User {
+  id                 String    @id @default(cuid())
+  username           String    @unique
+  email              String?   @unique
+  phoneNumber        String    @unique
+  passwordHash       String
+  fullName           String
+  profileImageUrl    String?
+  bio                String? // Max 150 characters
+  address            String?
+  latitude           Float?
+  longitude          Float?
+  locationVerified   Boolean   @default(false)
+  verificationStatus String    @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
+  role               String    @default("REGULAR_MEMBER") // "REGULAR_MEMBER", "NEIGHBORHOOD_LEAD", "BUSINESS", "PUBLIC_AGENCY", "ADMIN"
+  languagePreference String    @default("en") // "en" or "sw"
+  mpesaNumber        String?
+  isActive           Boolean   @default(true)
+  isBanned           Boolean   @default(false)
+  banReason          String?
+  banExpiresAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  lastSeenAt         DateTime?
+
+  // Relations
+  posts                Post[]
+  comments             Comment[]
+  refreshTokens        RefreshToken[]
+  otpCodes             OtpCode[]
+  userNeighborhoods    UserNeighborhood[]
+  likes                Like[]
+  reports              Report[]             @relation("ReportedBy")
+  reportedPosts        Post[]               @relation("ReportedPosts")
+  sentMessages         Message[]            @relation("Sender")
+  receivedMessages     Message[]            @relation("Receiver")
+  conversationsAsUser1 Conversation[]       @relation("ConversationUser1")
+  conversationsAsUser2 Conversation[]       @relation("ConversationUser2")
+  events               Event[]
+  eventRsvps           EventRsvp[]
+  marketplaceListings  MarketplaceListing[]
+  recommendations      Recommendation[]
+  safetyAlerts         SafetyAlert[]
+  notifications        Notification[]
+  businessProfile      BusinessProfile?
+  agencyProfile        AgencyProfile?
+  trustedMemberBadge   Boolean              @default(false) // Government ID verified
+}
+
+// ============================================
+// NEIGHBORHOOD MANAGEMENT
+// ============================================
+
+model Neighborhood {
+  id                  String   @id @default(cuid())
+  name                String
+  city                String // e.g., "Nairobi", "Mombasa"
+  county              String? // e.g., "Nairobi County"
+  description         String?
+  centerLatitude      Float?
+  centerLongitude     Float?
+  boundaryCoordinates String? // JSON array of coordinates for polygon
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  users              UserNeighborhood[]
+  posts              Post[]
+  events             Event[]
+  safetyAlerts       SafetyAlert[]
+  MarketplaceListing MarketplaceListing[]
+  Recommendation     Recommendation[]
+}
+
+model UserNeighborhood {
+  id             String    @id @default(cuid())
+  userId         String
+  neighborhoodId String
+  isPrimary      Boolean   @default(false) // Primary neighborhood
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  neighborhood Neighborhood @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, neighborhoodId])
+  @@index([userId])
+  @@index([neighborhoodId])
+}
+
+// ============================================
+// POSTS & CONTENT
+// ============================================
+// Valid values for type: "GENERAL", "SAFETY_ALERT", "RECOMMENDATION", "EVENT", "MARKETPLACE", "LOST_FOUND", "NEWS"
+// Valid values for category: "NEWS", "DISCUSSION", "QUESTION", "ANNOUNCEMENT", "LOST_FOUND"
+
+model Post {
+  id              String   @id @default(cuid())
+  type            String   @default("GENERAL") // "GENERAL", "SAFETY_ALERT", "RECOMMENDATION", "EVENT", "MARKETPLACE", "LOST_FOUND", "NEWS"
+  category        String? // "NEWS", "DISCUSSION", "QUESTION", "ANNOUNCEMENT", "LOST_FOUND"
+  title           String
+  description     String
+  images          String? // JSON array of image URLs (up to 10)
+  videos          String? // JSON array of video URLs (up to 5)
+  isPinned        Boolean  @default(false) // Pinned by neighborhood lead
+  isAnonymous     Boolean  @default(false)
+  engagementScore Int      @default(0) // (likes × 1) + (comments × 3) + (shares × 5) - (reports × 10)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  neighborhoodId String
+  neighborhood   Neighborhood @relation(fields: [neighborhoodId], references: [id])
+  comments       Comment[]
+  likes          Like[]
+  reports        Report[]     @relation("ReportedPosts")
+  reportedBy     User?        @relation("ReportedPosts", fields: [reportedById], references: [id])
+  reportedById   String?
+
+  // Post-specific relations
+  safetyAlert        SafetyAlert?
+  event              Event?
+  marketplaceListing MarketplaceListing?
+  recommendation     Recommendation?
+
+  @@index([neighborhoodId, createdAt])
+  @@index([type, createdAt])
+  @@index([engagementScore])
+  @@index([isPinned])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  isEdited  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  postId   String
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User      @relation(fields: [authorId], references: [id])
+  parentId String? // For nested replies
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+
+  @@index([postId, createdAt])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relations
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+// ============================================
+// SAFETY ALERTS
+// ============================================
+// Valid values for type: "CRIME", "FIRE", "ACCIDENT", "SUSPICIOUS_ACTIVITY", "NATURAL_DISASTER", "OTHER"
+
+model SafetyAlert {
+  id            String    @id @default(cuid())
+  type          String // "CRIME", "FIRE", "ACCIDENT", "SUSPICIOUS_ACTIVITY", "NATURAL_DISASTER", "OTHER"
+  title         String
+  description   String
+  latitude      Float
+  longitude     Float
+  address       String?
+  isUrgent      Boolean   @default(true)
+  isVerified    Boolean   @default(false)
+  expiresAt     DateTime? // 24-hour auto-expiry
+  extendedUntil DateTime? // If extended
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  postId         String       @unique
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  neighborhoodId String
+  neighborhood   Neighborhood @relation(fields: [neighborhoodId], references: [id])
+
+  @@index([neighborhoodId, createdAt])
+  @@index([type, createdAt])
+  @@index([isUrgent, createdAt])
+}
+
+// ============================================
+// EVENTS
+// ============================================
+// Valid values for category: "COMMUNITY_MEETING", "GARAGE_SALE", "SPORTS", "CLASSES", "SOCIAL_GATHERING", "OTHER"
+// Valid values for rsvpStatus: "GOING", "INTERESTED", "CANT_GO"
+
+model Event {
+  id             String    @id @default(cuid())
+  title          String
+  description    String
+  category       String // "COMMUNITY_MEETING", "GARAGE_SALE", "SPORTS", "CLASSES", "SOCIAL_GATHERING", "OTHER"
+  startDate      DateTime
+  endDate        DateTime?
+  location       String
+  latitude       Float?
+  longitude      Float?
+  isRecurring    Boolean   @default(false)
+  recurrenceRule String? // For recurring events
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  postId         String       @unique
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  neighborhoodId String
+  neighborhood   Neighborhood @relation(fields: [neighborhoodId], references: [id])
+  rsvps          EventRsvp[]
+
+  @@index([neighborhoodId, startDate])
+  @@index([startDate])
+}
+
+model EventRsvp {
+  id        String   @id @default(cuid())
+  status    String // "GOING", "INTERESTED", "CANT_GO"
+  createdAt DateTime @default(now())
+
+  // Relations
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+}
+
+// ============================================
+// MARKETPLACE
+// ============================================
+// Valid values for category: "FURNITURE", "ELECTRONICS", "CLOTHING", "BOOKS", "TOYS", "APPLIANCES", "VEHICLES", "OTHER"
+// Valid values for condition: "NEW", "LIKE_NEW", "GOOD", "FAIR", "POOR"
+
+model MarketplaceListing {
+  id                String    @id @default(cuid())
+  title             String
+  description       String
+  category          String // "FURNITURE", "ELECTRONICS", "CLOTHING", "BOOKS", "TOYS", "APPLIANCES", "VEHICLES", "OTHER"
+  price             Float? // null if "Free"
+  isFree            Boolean   @default(false)
+  condition         String? // "NEW", "LIKE_NEW", "GOOD", "FAIR", "POOR"
+  images            String // JSON array of image URLs (up to 8, required)
+  pickupLocation    String?
+  deliveryAvailable Boolean   @default(false)
+  isSold            Boolean   @default(false)
+  soldAt            DateTime?
+  expiresAt         DateTime // Auto-expire after 30 days
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  postId         String       @unique
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  neighborhoodId String
+  neighborhood   Neighborhood @relation(fields: [neighborhoodId], references: [id])
+
+  @@index([neighborhoodId, createdAt])
+  @@index([category, createdAt])
+  @@index([isSold, createdAt])
+}
+
+// ============================================
+// RECOMMENDATIONS
+// ============================================
+// Valid values for category: "HOME_SERVICES", "HEALTHCARE", "EDUCATION", "AUTOMOTIVE", "CHILDCARE", "PET_SERVICES", "FOOD_DINING", "OTHER"
+
+model Recommendation {
+  id           String   @id @default(cuid())
+  category     String // "HOME_SERVICES", "HEALTHCARE", "EDUCATION", "AUTOMOTIVE", "CHILDCARE", "PET_SERVICES", "FOOD_DINING", "OTHER"
+  title        String
+  description  String
+  businessName String? // Tagged business name
+  rating       Int? // 1-5 stars
+  isAsking     Boolean  @default(false) // true if asking for recommendation
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  postId         String       @unique
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  neighborhoodId String
+  neighborhood   Neighborhood @relation(fields: [neighborhoodId], references: [id])
+
+  @@index([neighborhoodId, category, createdAt])
+  @@index([category, createdAt])
+}
+
+// ============================================
+// MESSAGING
+// ============================================
+
+model Conversation {
+  id            String    @id @default(cuid())
+  user1Id       String // First participant
+  user2Id       String // Second participant
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastMessageAt DateTime?
+
+  // Relations
+  user1    User      @relation("ConversationUser1", fields: [user1Id], references: [id])
+  user2    User      @relation("ConversationUser2", fields: [user2Id], references: [id])
+  messages Message[]
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id, updatedAt])
+  @@index([user2Id, updatedAt])
+  @@index([updatedAt])
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  content     String
+  imageUrl    String?
+  locationLat Float?
+  locationLng Float?
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("Sender", fields: [senderId], references: [id])
+  receiverId     String
+  receiver       User         @relation("Receiver", fields: [receiverId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+// ============================================
+// BUSINESS & AGENCY PROFILES
+// ============================================
+
+model BusinessProfile {
+  id            String    @id @default(cuid())
+  businessName  String
+  category      String
+  description   String
+  address       String
+  phone         String
+  email         String?
+  website       String?
+  hours         String? // JSON object with hours
+  logoUrl       String?
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  postsPerWeek  Int       @default(0) // Limited to 3 per week
+  lastPostReset DateTime  @default(now()) // Reset counter weekly
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isVerified, createdAt])
+}
+
+model AgencyProfile {
+  id            String    @id @default(cuid())
+  agencyName    String
+  agencyType    String // "GOVERNMENT", "NGO", etc.
+  description   String
+  officialBadge Boolean   @default(false)
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isVerified, createdAt])
+}
+
+// ============================================
+// MODERATION & REPORTS
+// ============================================
+// Valid values for reason: "SPAM", "HARASSMENT", "INAPPROPRIATE_CONTENT", "FAKE_NEWS", "SCAM", "OTHER"
+// Valid values for status: "PENDING", "REVIEWED", "RESOLVED", "DISMISSED"
+
+model Report {
+  id          String    @id @default(cuid())
+  reason      String // "SPAM", "HARASSMENT", "INAPPROPRIATE_CONTENT", "FAKE_NEWS", "SCAM", "OTHER"
+  description String?
+  status      String    @default("PENDING") // "PENDING", "REVIEWED", "RESOLVED", "DISMISSED"
+  reviewedBy  String? // Admin user ID
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  postId       String?
+  post         Post?   @relation("ReportedPosts", fields: [postId], references: [id])
+  reportedById String
+  reportedBy   User    @relation("ReportedBy", fields: [reportedById], references: [id])
+
+  @@index([status, createdAt])
+  @@index([postId])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+// Valid values for type: "NEW_MESSAGE", "POST_LIKE", "POST_COMMENT", "SAFETY_ALERT", "EVENT_REMINDER", "MARKETPLACE_INTEREST", "RECOMMENDATION_RESPONSE", "SYSTEM_ANNOUNCEMENT"
+
+model Notification {
+  id        String    @id @default(cuid())
+  type      String // "NEW_MESSAGE", "POST_LIKE", "POST_COMMENT", "SAFETY_ALERT", "EVENT_REMINDER", "MARKETPLACE_INTEREST", "RECOMMENDATION_RESPONSE", "SYSTEM_ANNOUNCEMENT"
+  title     String
+  body      String
+  data      String? // JSON data for deep linking
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+// ============================================
+// AUTHENTICATION
+// ============================================
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model OtpCode {
+  id          String   @id @default(cuid())
+  phoneNumber String
+  code        String
+  purpose     String // "login", "register", "reset_password"
+  isUsed      Boolean  @default(false)
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([phoneNumber, isUsed, expiresAt])
+}
