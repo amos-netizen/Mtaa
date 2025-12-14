@@ -1,12 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, RequestMethod } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  
+  // Serve static files from public directory
+  app.useStaticAssets(join(__dirname, '..', 'public'), {
+    prefix: '/',
+  });
 
   // Enable CORS
   const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -25,7 +32,7 @@ async function bootstrap() {
   });
 
   // Root route handler (before global prefix)
-  app.getHttpAdapter().get('/', (req, res) => {
+  app.getHttpAdapter().get('/', (req: any, res: any) => {
     res.json({
       name: 'Mtaa API',
       version: '1.0.0',

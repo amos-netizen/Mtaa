@@ -12,6 +12,7 @@ import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { JobsModule } from './jobs/jobs.module';
 import { ServicesModule } from './services/services.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { UploadModule } from './upload/upload.module';
 import { AppController } from './app.controller';
 
 /**
@@ -33,6 +34,7 @@ import { AppController } from './app.controller';
     JobsModule,
     ServicesModule,
     BookingsModule,
+    UploadModule,
   ],
   controllers: [AppController],
 })

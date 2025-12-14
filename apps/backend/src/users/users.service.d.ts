@@ -8,16 +8,16 @@ export declare class UsersService {
     create(createUserDto: CreateUserDto): Promise<any>;
     findAll(page?: number, limit?: number): Promise<{
         data: {
-            phoneNumber: string;
-            fullName: string;
-            username: string;
-            email: string;
-            bio: string;
-            profileImageUrl: string;
             id: string;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            username: string;
+            email: string;
+            phoneNumber: string;
+            fullName: string;
+            profileImageUrl: string;
+            bio: string;
         }[];
         meta: {
             page: number;
@@ -28,28 +28,28 @@ export declare class UsersService {
     }>;
     findOne(id: string): Promise<any>;
     findByPhoneNumber(phoneNumber: string): Promise<{
-        phoneNumber: string;
-        fullName: string;
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         username: string;
         email: string | null;
-        address: string | null;
-        bio: string | null;
-        profileImageUrl: string | null;
-        languagePreference: string;
-        mpesaNumber: string | null;
-        id: string;
+        phoneNumber: string;
         passwordHash: string;
+        fullName: string;
+        profileImageUrl: string | null;
+        bio: string | null;
+        address: string | null;
         latitude: number | null;
         longitude: number | null;
         locationVerified: boolean;
         verificationStatus: string;
         role: string;
-        isActive: boolean;
+        languagePreference: string;
+        mpesaNumber: string | null;
         isBanned: boolean;
         banReason: string | null;
         banExpiresAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
         lastSeenAt: Date | null;
         trustedMemberBadge: boolean;
     }>;

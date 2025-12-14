@@ -110,6 +110,7 @@ export default function ListingDetailPage() {
   const images = Array.isArray(listing.images) 
     ? listing.images 
     : JSON.parse(listing.images || '[]');
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -126,17 +127,74 @@ export default function ListingDetailPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          {/* Images */}
+          {/* Images Gallery */}
           {images.length > 0 && (
-            <div className="aspect-video bg-gray-200 dark:bg-gray-700">
-              <img
-                src={images[0]}
-                alt={listing.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
-                }}
-              />
+            <div className="space-y-4">
+              {/* Main Image */}
+              <div className="aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden rounded-t-lg">
+                <img
+                  src={images[selectedImageIndex] || images[0]}
+                  alt={listing.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                  }}
+                />
+                {listing.isSold && (
+                  <div className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-lg">
+                    SOLD
+                  </div>
+                )}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                      aria-label="Previous image"
+                    >
+                      ←
+                    </button>
+                    <button
+                      onClick={() => setSelectedImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                      aria-label="Next image"
+                    >
+                      →
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              {/* Thumbnail Gallery */}
+              {images.length > 1 && (
+                <div className="px-4 pb-4">
+                  <div className="flex gap-2 overflow-x-auto">
+                    {images.map((image: string, index: number) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedImageIndex(index)}
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                          selectedImageIndex === index
+                            ? 'border-primary-600 ring-2 ring-primary-300'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-primary-400'
+                        }`}
+                      >
+                        <img
+                          src={image}
+                          alt={`${listing.title} - Image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                    {selectedImageIndex + 1} of {images.length}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -150,11 +208,6 @@ export default function ListingDetailPage() {
                   {formatPrice(listing.price, listing.isFree)}
                 </p>
               </div>
-              {listing.isSold && (
-                <span className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
-                  SOLD
-                </span>
-              )}
             </div>
 
             <div className="flex items-center gap-4 mb-4 text-sm text-gray-500 dark:text-gray-400">

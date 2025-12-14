@@ -4,10 +4,10 @@ export declare class NotificationsService {
     constructor(prisma: PrismaService);
     findAll(userId: string, page?: number, limit?: number): Promise<{
         notifications: {
-            type: string;
-            title: string;
             id: string;
             createdAt: Date;
+            type: string;
+            title: string;
             data: string | null;
             userId: string;
             body: string;
@@ -23,10 +23,10 @@ export declare class NotificationsService {
     }>;
     getUnreadCount(userId: string): Promise<number>;
     markAsRead(userId: string, notificationId: string): Promise<{
-        type: string;
-        title: string;
         id: string;
         createdAt: Date;
+        type: string;
+        title: string;
         data: string | null;
         userId: string;
         body: string;

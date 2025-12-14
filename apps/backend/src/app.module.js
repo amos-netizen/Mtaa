@@ -21,6 +21,7 @@ const neighborhoods_module_1 = require("./neighborhoods/neighborhoods.module");
 const jobs_module_1 = require("./jobs/jobs.module");
 const services_module_1 = require("./services/services.module");
 const bookings_module_1 = require("./bookings/bookings.module");
+const upload_module_1 = require("./upload/upload.module");
 const app_controller_1 = require("./app.controller");
 let AppModule = class AppModule {
 };
@@ -41,6 +42,7 @@ exports.AppModule = AppModule = __decorate([
             jobs_module_1.JobsModule,
             services_module_1.ServicesModule,
             bookings_module_1.BookingsModule,
+            upload_module_1.UploadModule,
         ],
         controllers: [app_controller_1.AppController],
     })

@@ -9,7 +9,7 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "prisma generate",
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
     "start:dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
     "start:debug": "ts-node-dev --inspect --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
@@ -25,8 +25,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "type-check": "tsc --noEmit",
-    "postinstall": "prisma generate"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@mtaa/types": "*",
@@ -42,6 +41,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "joi": "^17.11.0",
+    "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.1.13",
@@ -55,6 +55,7 @@
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.11",
     "@types/joi": "^17.2.3",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.10.6",
     "@types/passport-jwt": "^4.0.1",
     "@typescript-eslint/eslint-plugin": "^6.17.0",

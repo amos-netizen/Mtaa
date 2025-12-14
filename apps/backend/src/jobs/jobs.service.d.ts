@@ -5,30 +5,30 @@ export declare class JobsService {
     findAll(page?: number, limit?: number, neighborhoodId?: string, search?: string): Promise<{
         jobs: ({
             neighborhood: {
-                name: string;
                 id: string;
+                name: string;
             };
             author: {
-                fullName: string;
-                username: string;
-                profileImageUrl: string;
                 id: string;
+                username: string;
+                fullName: string;
+                profileImageUrl: string;
             };
         } & {
-            description: string;
-            type: string;
-            title: string;
-            neighborhoodId: string;
             id: string;
+            description: string;
             createdAt: Date;
             updatedAt: Date;
+            type: string;
             category: string | null;
+            title: string;
             images: string | null;
-            authorId: string;
             videos: string | null;
             isPinned: boolean;
             isAnonymous: boolean;
             engagementScore: number;
+            authorId: string;
+            neighborhoodId: string;
             reportedById: string | null;
         })[];
         pagination: {
@@ -40,32 +40,32 @@ export declare class JobsService {
     }>;
     findOne(id: string): Promise<{
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
-            phoneNumber: string;
-            fullName: string;
+            id: string;
             username: string;
             email: string;
+            phoneNumber: string;
+            fullName: string;
             profileImageUrl: string;
-            id: string;
         };
     } & {
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     create(userId: string, data: {
@@ -78,30 +78,30 @@ export declare class JobsService {
         jobType?: string;
     }): Promise<{
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
     } & {
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     update(userId: string, id: string, data: {
@@ -111,30 +111,30 @@ export declare class JobsService {
         images?: string[];
     }): Promise<{
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
     } & {
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     remove(userId: string, id: string): Promise<{
@@ -145,19 +145,19 @@ export declare class JobsService {
         resumeUrl?: string;
     }): Promise<{
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
         content: string;
-        postId: string;
         authorId: string;
         isEdited: boolean;
+        postId: string;
         parentId: string | null;
     }>;
 }

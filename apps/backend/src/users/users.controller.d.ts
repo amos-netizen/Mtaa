@@ -6,16 +6,16 @@ export declare class UsersController {
     create(createUserDto: CreateUserDto): Promise<any>;
     findAll(page: number, limit: number): Promise<{
         data: {
-            phoneNumber: string;
-            fullName: string;
-            username: string;
-            email: string;
-            bio: string;
-            profileImageUrl: string;
             id: string;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            username: string;
+            email: string;
+            phoneNumber: string;
+            fullName: string;
+            profileImageUrl: string;
+            bio: string;
         }[];
         meta: {
             page: number;

@@ -7,33 +7,33 @@ export declare class PostsController {
             likeCount: number;
             commentCount: number;
             neighborhood: {
-                name: string;
                 id: string;
+                name: string;
             };
             _count: {
                 comments: number;
                 likes: number;
             };
             author: {
-                fullName: string;
-                username: string;
-                profileImageUrl: string;
                 id: string;
+                username: string;
+                fullName: string;
+                profileImageUrl: string;
             };
-            description: string;
-            type: string;
-            title: string;
-            neighborhoodId: string;
             id: string;
+            description: string;
             createdAt: Date;
             updatedAt: Date;
+            type: string;
             category: string | null;
+            title: string;
             images: string | null;
-            authorId: string;
             videos: string | null;
             isPinned: boolean;
             isAnonymous: boolean;
             engagementScore: number;
+            authorId: string;
+            neighborhoodId: string;
             reportedById: string | null;
         }[];
         pagination: {
@@ -47,29 +47,29 @@ export declare class PostsController {
         likeCount: number;
         commentCount: number;
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     create(user: any, body: {
@@ -85,29 +85,29 @@ export declare class PostsController {
         likeCount: number;
         commentCount: number;
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     update(user: any, id: string, body: {
@@ -120,29 +120,29 @@ export declare class PostsController {
         likeCount: number;
         commentCount: number;
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     remove(user: any, id: string): Promise<{
@@ -151,26 +151,26 @@ export declare class PostsController {
     getComments(postId: string, page?: number, limit?: number): Promise<{
         comments: ({
             author: {
-                fullName: string;
-                username: string;
-                profileImageUrl: string;
                 id: string;
+                username: string;
+                fullName: string;
+                profileImageUrl: string;
             };
             replies: ({
                 author: {
-                    fullName: string;
-                    username: string;
-                    profileImageUrl: string;
                     id: string;
+                    username: string;
+                    fullName: string;
+                    profileImageUrl: string;
                 };
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 content: string;
-                postId: string;
                 authorId: string;
                 isEdited: boolean;
+                postId: string;
                 parentId: string | null;
             })[];
         } & {
@@ -178,9 +178,9 @@ export declare class PostsController {
             createdAt: Date;
             updatedAt: Date;
             content: string;
-            postId: string;
             authorId: string;
             isEdited: boolean;
+            postId: string;
             parentId: string | null;
         })[];
         pagination: {
@@ -195,38 +195,38 @@ export declare class PostsController {
         parentId?: string;
     }): Promise<{
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
         content: string;
-        postId: string;
         authorId: string;
         isEdited: boolean;
+        postId: string;
         parentId: string | null;
     }>;
     updateComment(user: any, id: string, body: {
         content: string;
     }): Promise<{
         author: {
-            fullName: string;
-            username: string;
-            profileImageUrl: string;
             id: string;
+            username: string;
+            fullName: string;
+            profileImageUrl: string;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
         content: string;
-        postId: string;
         authorId: string;
         isEdited: boolean;
+        postId: string;
         parentId: string | null;
     }>;
     deleteComment(user: any, id: string): Promise<{

@@ -4,10 +4,10 @@ export declare class NotificationsController {
     constructor(notificationsService: NotificationsService);
     findAll(user: any, page: number, limit: number): Promise<{
         notifications: {
-            type: string;
-            title: string;
             id: string;
             createdAt: Date;
+            type: string;
+            title: string;
             data: string | null;
             userId: string;
             body: string;
@@ -25,10 +25,10 @@ export declare class NotificationsController {
         count: number;
     }>;
     markAsRead(user: any, id: string): Promise<{
-        type: string;
-        title: string;
         id: string;
         createdAt: Date;
+        type: string;
+        title: string;
         data: string | null;
         userId: string;
         body: string;

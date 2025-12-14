@@ -5,31 +5,31 @@ export declare class ServicesService {
     findAll(page?: number, limit?: number, neighborhoodId?: string, search?: string, category?: string): Promise<{
         services: ({
             neighborhood: {
-                name: string;
                 id: string;
+                name: string;
             };
             author: {
+                id: string;
+                username: string;
                 phoneNumber: string;
                 fullName: string;
-                username: string;
                 profileImageUrl: string;
-                id: string;
             };
         } & {
-            description: string;
-            type: string;
-            title: string;
-            neighborhoodId: string;
             id: string;
+            description: string;
             createdAt: Date;
             updatedAt: Date;
+            type: string;
             category: string | null;
+            title: string;
             images: string | null;
-            authorId: string;
             videos: string | null;
             isPinned: boolean;
             isAnonymous: boolean;
             engagementScore: number;
+            authorId: string;
+            neighborhoodId: string;
             reportedById: string | null;
         })[];
         pagination: {
@@ -41,32 +41,32 @@ export declare class ServicesService {
     }>;
     findOne(id: string): Promise<{
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
-            phoneNumber: string;
-            fullName: string;
+            id: string;
             username: string;
             email: string;
+            phoneNumber: string;
+            fullName: string;
             profileImageUrl: string;
-            id: string;
         };
     } & {
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     create(userId: string, data: {
@@ -79,31 +79,31 @@ export declare class ServicesService {
         serviceType?: string;
     }): Promise<{
         neighborhood: {
-            name: string;
             id: string;
+            name: string;
         };
         author: {
+            id: string;
+            username: string;
             phoneNumber: string;
             fullName: string;
-            username: string;
             profileImageUrl: string;
-            id: string;
         };
     } & {
-        description: string;
-        type: string;
-        title: string;
-        neighborhoodId: string;
         id: string;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
+        type: string;
         category: string | null;
+        title: string;
         images: string | null;
-        authorId: string;
         videos: string | null;
         isPinned: boolean;
         isAnonymous: boolean;
         engagementScore: number;
+        authorId: string;
+        neighborhoodId: string;
         reportedById: string | null;
     }>;
     book(userId: string, serviceId: string, bookingData: {
@@ -112,20 +112,20 @@ export declare class ServicesService {
         message: string;
     }): Promise<{
         author: {
+            id: string;
+            username: string;
             phoneNumber: string;
             fullName: string;
-            username: string;
             profileImageUrl: string;
-            id: string;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
         content: string;
-        postId: string;
         authorId: string;
         isEdited: boolean;
+        postId: string;
         parentId: string | null;
     }>;
 }

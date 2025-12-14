@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { marketplaceApi } from '@/lib/api/marketplace';
+import { uploadApi } from '@/lib/api/upload';
 
 const createListingSchema = z.object({
   neighborhoodId: z.string().min(1, 'Neighborhood is required'),
@@ -45,8 +46,12 @@ const CONDITIONS = [
 export default function CreateListingPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -82,16 +87,84 @@ export default function CreateListingPage() {
     setValue('images', newUrls.filter(url => url.trim() !== ''));
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Validate file count
+    if (imageFiles.length + files.length > 8) {
+      setMessage({ type: 'error', text: 'Maximum 8 images allowed' });
+      return;
+    }
+
+    // Validate file types and sizes
+    const validFiles: File[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        setMessage({ type: 'error', text: `${file.name} is not an image file` });
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: `${file.name} exceeds 5MB limit` });
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) return;
+
+    // Create previews
+    const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+    setImagePreviews([...imagePreviews, ...newPreviews]);
+    setImageFiles([...imageFiles, ...validFiles]);
+
+    // Upload files
+    setUploadingImages(true);
+    try {
+      const uploadedUrls = await uploadApi.uploadImages(validFiles);
+      setImageUrls([...imageUrls.filter(url => url), ...uploadedUrls]);
+      setValue('images', [...imageUrls.filter(url => url), ...uploadedUrls]);
+      setMessage({ type: 'success', text: `${validFiles.length} image(s) uploaded successfully!` });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to upload images' });
+      // Remove failed previews
+      newPreviews.forEach(preview => URL.revokeObjectURL(preview));
+      setImagePreviews(imagePreviews);
+      setImageFiles(imageFiles);
+    } finally {
+      setUploadingImages(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    // Remove from files
+    if (index < imageFiles.length) {
+      URL.revokeObjectURL(imagePreviews[index]);
+      const newFiles = imageFiles.filter((_, i) => i !== index);
+      const newPreviews = imagePreviews.filter((_, i) => i !== index);
+      setImageFiles(newFiles);
+      setImagePreviews(newPreviews);
+    }
+    
+    // Remove from URLs
+    const newUrls = imageUrls.filter((_, i) => i !== index);
+    setImageUrls(newUrls);
+    setValue('images', newUrls.filter(url => url.trim() !== ''));
+  };
+
   const onSubmit = async (data: CreateListingForm) => {
     setIsLoading(true);
     setMessage(null);
 
     try {
-      // Filter out empty image URLs
+      // Get all valid images (from uploads and URLs)
       const validImages = imageUrls.filter(url => url.trim() !== '');
       
       if (validImages.length === 0) {
-        setMessage({ type: 'error', text: 'At least one image URL is required' });
+        setMessage({ type: 'error', text: 'At least one image is required' });
         setIsLoading(false);
         return;
       }
@@ -104,6 +177,9 @@ export default function CreateListingPage() {
 
       await marketplaceApi.createListing(listingData);
       setMessage({ type: 'success', text: 'Listing created successfully! Redirecting...' });
+      
+      // Clean up preview URLs
+      imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
       
       setTimeout(() => {
         router.push('/marketplace');
@@ -311,37 +387,118 @@ export default function CreateListingPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Image URLs <span className="text-red-500">*</span> (1-8 images)
+              Images <span className="text-red-500">*</span> (1-8 images)
             </label>
-            {imageUrls.map((url, index) => (
-              <div key={index} className="flex gap-2 mb-2">
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => updateImageUrl(index, e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                />
-                {imageUrls.length > 1 && (
+            
+            {/* File Upload */}
+            <div className="mb-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                id="image-upload"
+                disabled={uploadingImages || (imageFiles.length + imageUrls.filter(url => url).length) >= 8}
+              />
+              <label
+                htmlFor="image-upload"
+                className={`inline-block px-4 py-2 rounded-lg cursor-pointer transition-colors ${
+                  uploadingImages || (imageFiles.length + imageUrls.filter(url => url).length) >= 8
+                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                }`}
+              >
+                {uploadingImages ? 'Uploading...' : '📷 Upload Images'}
+              </label>
+              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                (JPEG, PNG, WebP, max 5MB each)
+              </span>
+            </div>
+
+            {/* Image Previews */}
+            {(imagePreviews.length > 0 || imageUrls.filter(url => url).length > 0) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                {imagePreviews.map((preview, index) => (
+                  <div key={`preview-${index}`} className="relative group">
+                    <img
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {imageUrls.filter(url => url).map((url, index) => {
+                  const urlIndex = imagePreviews.length + index;
+                  return (
+                    <div key={`url-${urlIndex}`} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Image ${urlIndex + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(urlIndex)}
+                        className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* URL Input (Alternative) */}
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                Or add image URLs manually
+              </summary>
+              <div className="mt-2 space-y-2">
+                {imageUrls.map((url, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => updateImageUrl(index, e.target.value)}
+                      placeholder="https://example.com/image.jpg"
+                      className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                    {imageUrls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeImageField(index)}
+                        className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {imageUrls.length < 8 && (
                   <button
                     type="button"
-                    onClick={() => removeImageField(index)}
-                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    onClick={addImageField}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                   >
-                    Remove
+                    Add Image URL
                   </button>
                 )}
               </div>
-            ))}
-            {imageUrls.length < 8 && (
-              <button
-                type="button"
-                onClick={addImageField}
-                className="mt-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-              >
-                Add Image URL
-              </button>
-            )}
+            </details>
+
             {errors.images && (
               <p className="mt-1 text-sm text-red-600">{errors.images.message}</p>
             )}

@@ -7,31 +7,31 @@ export declare class BookingsService {
             id: string;
             service: {
                 neighborhood: {
-                    name: string;
                     id: string;
+                    name: string;
                 };
                 author: {
+                    id: string;
+                    username: string;
                     phoneNumber: string;
                     fullName: string;
-                    username: string;
                     profileImageUrl: string;
-                    id: string;
                 };
             } & {
-                description: string;
-                type: string;
-                title: string;
-                neighborhoodId: string;
                 id: string;
+                description: string;
                 createdAt: Date;
                 updatedAt: Date;
+                type: string;
                 category: string | null;
+                title: string;
                 images: string | null;
-                authorId: string;
                 videos: string | null;
                 isPinned: boolean;
                 isAnonymous: boolean;
                 engagementScore: number;
+                authorId: string;
+                neighborhoodId: string;
                 reportedById: string | null;
             };
             message: string;
@@ -49,32 +49,32 @@ export declare class BookingsService {
         id: string;
         service: {
             neighborhood: {
-                name: string;
                 id: string;
+                name: string;
             };
             author: {
-                phoneNumber: string;
-                fullName: string;
+                id: string;
                 username: string;
                 email: string;
+                phoneNumber: string;
+                fullName: string;
                 profileImageUrl: string;
-                id: string;
             };
         } & {
-            description: string;
-            type: string;
-            title: string;
-            neighborhoodId: string;
             id: string;
+            description: string;
             createdAt: Date;
             updatedAt: Date;
+            type: string;
             category: string | null;
+            title: string;
             images: string | null;
-            authorId: string;
             videos: string | null;
             isPinned: boolean;
             isAnonymous: boolean;
             engagementScore: number;
+            authorId: string;
+            neighborhoodId: string;
             reportedById: string | null;
         };
         message: string;
@@ -91,26 +91,26 @@ export declare class BookingsService {
     }): Promise<{
         post: {
             author: {
-                fullName: string;
-                username: string;
-                profileImageUrl: string;
                 id: string;
+                username: string;
+                fullName: string;
+                profileImageUrl: string;
             };
         } & {
-            description: string;
-            type: string;
-            title: string;
-            neighborhoodId: string;
             id: string;
+            description: string;
             createdAt: Date;
             updatedAt: Date;
+            type: string;
             category: string | null;
+            title: string;
             images: string | null;
-            authorId: string;
             videos: string | null;
             isPinned: boolean;
             isAnonymous: boolean;
             engagementScore: number;
+            authorId: string;
+            neighborhoodId: string;
             reportedById: string | null;
         };
     } & {
@@ -118,9 +118,9 @@ export declare class BookingsService {
         createdAt: Date;
         updatedAt: Date;
         content: string;
-        postId: string;
         authorId: string;
         isEdited: boolean;
+        postId: string;
         parentId: string | null;
     }>;
 }
