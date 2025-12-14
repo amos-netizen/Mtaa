@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import { authApi } from '@/lib/api/auth';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -34,34 +35,11 @@ export default function LoginPage() {
     try {
       console.log('Sending login request with data:', { email: data.email });
       
-      const response = await fetch('http://localhost:3001/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-        }),
-      });
+      const result = await authApi.loginWithPassword(data.email, data.password);
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
+      console.log('Login response:', result);
 
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-
-      if (!response.ok) {
-        const errorMessage = responseData.message || responseData.error || 'Login failed. Please try again.';
-        setMessage({ type: 'error', text: errorMessage });
-        return;
-      }
-
-      // Extract tokens from response
-      // Backend returns: { data: { accessToken, refreshToken, user }, statusCode }
-      const tokens = responseData.data || responseData;
-      const accessToken = tokens?.accessToken;
-      const refreshToken = tokens?.refreshToken;
+      const { accessToken, refreshToken } = result;
 
       if (accessToken && refreshToken) {
         try {
@@ -79,12 +57,21 @@ export default function LoginPage() {
           setMessage({ type: 'error', text: 'Login successful but failed to save tokens. Please try again.' });
         }
       } else {
-        console.error('Unexpected response format:', JSON.stringify(responseData, null, 2));
+        console.error('Unexpected response format:', JSON.stringify(result, null, 2));
         setMessage({ type: 'error', text: 'Login successful but tokens not received. Please try again.' });
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = error.message || 'Network error. Please check your connection and try again.';
+      let errorMessage = 'Network error. Please check your connection and try again.';
+      
+      if (error.response) {
+        // Server responded with error status
+        const responseData = error.response.data;
+        errorMessage = responseData.message || responseData.error || 'Login failed. Please try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsLoading(false);

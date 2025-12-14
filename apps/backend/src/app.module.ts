@@ -5,6 +5,14 @@ import { UsersModule } from './users/users.module';
 import { DatabaseModule } from './database/database.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MarketplaceModule } from './marketplace/marketplace.module';
+import { PostsModule } from './posts/posts.module';
+import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
+import { JobsModule } from './jobs/jobs.module';
+import { ServicesModule } from './services/services.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { AppController } from './app.controller';
 
 /**
  * Root Application Module
@@ -18,7 +26,15 @@ import { HealthModule } from './health/health.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    NotificationsModule,
+    MarketplaceModule,
+    PostsModule,
+    NeighborhoodsModule,
+    JobsModule,
+    ServicesModule,
+    BookingsModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
 

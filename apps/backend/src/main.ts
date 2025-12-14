@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, RequestMethod } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -19,8 +19,34 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Global prefix
-  app.setGlobalPrefix('api/v1');
+  // Global prefix (exclude root path)
+  app.setGlobalPrefix('api/v1', {
+    exclude: [{ path: '/', method: RequestMethod.GET }],
+  });
+
+  // Root route handler (before global prefix)
+  app.getHttpAdapter().get('/', (req, res) => {
+    res.json({
+      name: 'Mtaa API',
+      version: '1.0.0',
+      description: 'Hyperlocal Kenyan Neighborhood Social Network API',
+      message: 'API is available at /api/v1',
+      endpoints: {
+        health: '/api/v1/health',
+        docs: '/api/docs',
+        auth: '/api/v1/auth',
+        users: '/api/v1/users',
+        posts: '/api/v1/posts',
+        notifications: '/api/v1/notifications',
+        marketplace: '/api/v1/marketplace/listings',
+        jobs: '/api/v1/jobs',
+        services: '/api/v1/services',
+        bookings: '/api/v1/bookings',
+        messages: '/api/v1/conversations',
+        neighborhoods: '/api/v1/neighborhoods',
+      },
+    });
+  });
 
   // Global validation pipe
   app.useGlobalPipes(

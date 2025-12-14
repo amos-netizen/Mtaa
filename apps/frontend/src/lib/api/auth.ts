@@ -34,7 +34,18 @@ export const authApi = {
    * Request login OTP
    */
   async login(phoneNumber: string) {
-    const response = await apiClient.instance.post('/api/v1/auth/login', { phoneNumber });
+    const response = await apiClient.instance.post('/api/v1/auth/login/otp', { phoneNumber });
+    return response.data.data;
+  },
+
+  /**
+   * Login with email and password
+   */
+  async loginWithPassword(email: string, password: string): Promise<AuthTokens & { user: any }> {
+    const response = await apiClient.instance.post('/api/v1/auth/login', {
+      email,
+      password,
+    });
     return response.data.data;
   },
 
@@ -60,10 +71,16 @@ export const authApi = {
    * Logout
    */
   async logout() {
-    await apiClient.instance.post('/api/v1/auth/logout');
+    try {
+      await apiClient.instance.delete('/api/v1/auth/logout');
+    } catch (error) {
+      // Even if logout fails on server, clear local tokens
+      console.error('Logout error:', error);
+    } finally {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      }
     }
   },
 };

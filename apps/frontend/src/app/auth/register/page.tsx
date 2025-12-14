@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import axios from 'axios';
+import { authApi } from '@/lib/api/auth';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address').trim(),
@@ -49,29 +49,18 @@ export default function RegisterPage() {
         email: data.email.trim(),
         password: data.password,
         phoneNumber: data.phoneNumber.trim(),
+        ...(data.neighborhoodId && { neighborhoodId: data.neighborhoodId }),
+        ...(data.address && { address: data.address }),
       };
       
       console.log('Submitting registration with data:', { ...registrationData, password: '***' });
       
-      // Use Axios to send POST request to backend
-      const response = await axios.post(
-        'http://localhost:3001/api/v1/auth/register',
-        registrationData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const result = await authApi.register(registrationData);
       
-      console.log('Registration response:', response.data);
+      console.log('Registration response:', result);
       
       // Extract tokens from response
-      // Backend returns: { data: { accessToken, refreshToken, user }, statusCode }
-      const responseData = response.data;
-      const tokens = responseData.data || responseData;
-      const accessToken = tokens?.accessToken;
-      const refreshToken = tokens?.refreshToken;
+      const { accessToken, refreshToken } = result;
       
       if (accessToken && refreshToken) {
         // Save tokens to localStorage
@@ -100,7 +89,6 @@ export default function RegisterPage() {
         }, 2000);
       }
     } catch (error: any) {
-      // Handle errors with Axios
       console.error('Registration error:', error);
       
       let errorMessage = 'Registration failed. Please try again.';
@@ -122,10 +110,9 @@ export default function RegisterPage() {
         }
       } else if (error.request) {
         // Request was made but no response received
-        errorMessage = 'Unable to connect to server. Please check if the backend is running on http://localhost:3001';
-      } else {
-        // Something else happened
-        errorMessage = error.message || 'An unexpected error occurred. Please try again.';
+        errorMessage = 'Unable to connect to server. Please check if the backend is running.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       setMessage({ type: 'error', text: errorMessage });
@@ -167,6 +154,20 @@ export default function RegisterPage() {
             </div>
           </div>
         )}
+
+        {/* Example Info */}
+        <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">
+            💡 Example Registration
+          </h3>
+          <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+            <p><strong>Full Name:</strong> John Doe</p>
+            <p><strong>Username:</strong> johndoe (letters, numbers, underscores only)</p>
+            <p><strong>Email:</strong> john.doe@example.com</p>
+            <p><strong>Phone:</strong> +254712345678 (10+ digits)</p>
+            <p><strong>Password:</strong> Minimum 6 characters</p>
+          </div>
+        </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div>

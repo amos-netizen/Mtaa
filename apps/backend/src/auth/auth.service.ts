@@ -88,6 +88,7 @@ export class AuthService {
         user: this.usersService.sanitizeUser(user),
       };
     } catch (error: any) {
+      console.error('Registration error:', error);
       // Handle Prisma unique constraint errors
       if (error.code === 'P2002') {
         const field = error.meta?.target?.[0];
@@ -99,7 +100,12 @@ export class AuthService {
           throw new ConflictException('Username is already taken');
         }
       }
-      throw error;
+      // Handle foreign key constraint errors (e.g., invalid neighborhoodId)
+      if (error.code === 'P2003') {
+        throw new BadRequestException('Invalid neighborhood ID provided');
+      }
+      // Re-throw with more context
+      throw new BadRequestException(error.message || 'Registration failed');
     }
   }
 

@@ -28,10 +28,10 @@ export class RegisterDto {
   @MinLength(6, { message: 'Password must be at least 6 characters' })
   password: string;
 
-  @ApiProperty({ example: 'john@example.com' })
+  @ApiProperty({ example: 'john@example.com', required: false })
   @IsEmail({}, { message: 'Invalid email address' })
-  @IsNotEmpty({ message: 'Email is required' })
-  email: string;
+  @IsOptional()
+  email?: string;
 
   @ApiProperty({ example: 'cuid-here', required: false })
   @IsString()
