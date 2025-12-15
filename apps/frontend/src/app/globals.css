@@ -32,3 +32,13 @@ body {
   }
 }
 
+/* Ensure Next.js portal elements don't interfere with layout */
+/* Portals are invisible containers that should not take up space */
+nextjs-portal {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+

@@ -4,8 +4,8 @@ services:
     name: mtaa-backend
     env: node
     rootDir: apps/backend
-    buildCommand: npm install && npm run build && npm run prisma:generate && npm run prisma:migrate:deploy
-    startCommand: npm start
+    buildCommand: cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npm run prisma:migrate:deploy
+    startCommand: node dist/main.js
     envVars:
       - key: NODE_ENV
         value: production

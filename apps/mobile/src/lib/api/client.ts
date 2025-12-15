@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { SecureStore } from '../storage';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { SecureStore } from '../storage';
 
 /**
  * API client for mobile app
@@ -10,7 +11,12 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3001';
+    const defaultLocalApi =
+      Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
+    this.baseURL =
+      process.env.EXPO_PUBLIC_API_URL ||
+      Constants.expoConfig?.extra?.apiUrl ||
+      defaultLocalApi;
 
     this.client = axios.create({
       baseURL: this.baseURL,
