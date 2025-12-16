@@ -11,30 +11,27 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@mtaa/types": "*",
+    "@hookform/resolvers": "^3.3.2",
     "@mtaa/config": "*",
+    "@mtaa/types": "*",
     "@tanstack/react-query": "^5.17.0",
+    "axios": "^1.6.2",
     "next": "15.0.0",
+    "next-themes": "^0.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "axios": "^1.6.2",
-    "next-themes": "^0.2.1",
     "react-hook-form": "^7.49.2",
-    "zod": "^3.22.4",
-    "@hookform/resolvers": "^3.3.2"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.6",
-    "@types/react": "^18.2.45",
+    "@types/node": "^20.19.27",
+    "@types/react": "^18.3.27",
     "@types/react-dom": "^18.2.18",
-    "autoprefixer": "^10.4.16",
+    "autoprefixer": "^10.4.23",
     "eslint": "^8.56.0",
     "eslint-config-next": "15.0.0",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.3.3"
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
   }
 }
-
-
-

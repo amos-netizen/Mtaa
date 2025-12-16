@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@mtaa/types', '@mtaa/config'],
@@ -13,6 +15,10 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   output: 'standalone', // For Docker deployment
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
+    return config;
+  },
 };
 
 module.exports = nextConfig;
