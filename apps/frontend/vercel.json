@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && npm install && cd apps/frontend && npm run build",
+  "buildCommand": "cd ../.. && npm install && cd apps/frontend && npm install && npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
   "installCommand": "cd ../.. && npm install",
@@ -8,4 +8,3 @@
     "NEXT_PUBLIC_API_URL": "https://mtaa-16.onrender.com/api/v1"
   }
 }
-
