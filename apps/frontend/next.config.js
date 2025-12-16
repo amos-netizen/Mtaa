@@ -3,6 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@mtaa/types', '@mtaa/config'],
   env: {
+    // NEXT_PUBLIC_API_URL should be set via environment variable
+    // Local dev: .env.local file
+    // Production (Vercel): Set in Vercel Dashboard → Settings → Environment Variables
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },
   eslint: {
