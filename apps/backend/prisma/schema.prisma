@@ -5,14 +5,13 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // ============================================
 // USER MANAGEMENT
 // ============================================
-// Note: SQLite doesn't support enums, so we use String fields
 // Valid values for role: "REGULAR_MEMBER", "NEIGHBORHOOD_LEAD", "BUSINESS", "PUBLIC_AGENCY", "ADMIN"
 // Valid values for verificationStatus: "PENDING", "VERIFIED", "REJECTED"
 

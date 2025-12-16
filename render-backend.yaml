@@ -5,8 +5,8 @@ services:
     env: node
     region: oregon  # Change to your preferred region
     plan: starter  # Use 'free' for free tier
-    buildCommand: npm install && npm run build && npm run prisma:generate && npm run prisma:migrate:deploy
-    startCommand: npm start
+    buildCommand: cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npm run prisma:migrate:deploy
+    startCommand: node dist/main.js
     rootDir: apps/backend
     envVars:
       - key: NODE_ENV
@@ -32,6 +32,7 @@ databases:
     databaseName: mtaa
     user: mtaa_user
     plan: starter  # Use 'free' for free tier
+
 
 
 
