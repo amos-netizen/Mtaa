@@ -17,6 +17,10 @@ services:
         fromDatabase:
           name: mtaa-database
           property: connectionString
+      - key: DIRECT_URL
+        fromDatabase:
+          name: mtaa-database
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true  # Render will generate a secure secret
       - key: JWT_EXPIRES_IN
