@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,18 +8,56 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 
+// Password strength checker
+const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+  let score = 0;
+  if (password.length >= 6) score++;
+  if (password.length >= 8) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+  if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
+  if (score <= 4) return { score, label: 'Medium', color: 'bg-yellow-500' };
+  return { score, label: 'Strong', color: 'bg-green-500' };
+};
+
+// Enhanced validation schema
 const registerSchema = z.object({
-  email: z.string().email('Invalid email address').trim(),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  phoneNumber: z.string().min(10, 'Phone number must be at least 10 characters').trim(),
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').trim(),
-  username: z.string()
+  fullName: z
+    .string()
+    .min(2, 'Full name must be at least 2 characters')
+    .max(50, 'Full name must be less than 50 characters')
+    .trim(),
+  username: z
+    .string()
     .min(3, 'Username must be at least 3 characters')
     .max(20, 'Username must be less than 20 characters')
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
     .transform((val) => val.toLowerCase().trim()),
-  neighborhoodId: z.string().optional().transform((val) => val?.trim() || undefined),
+  email: z
+    .string()
+    .email('Please enter a valid email address')
+    .trim()
+    .toLowerCase(),
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters')
+    .max(100, 'Password must be less than 100 characters'),
+  confirmPassword: z
+    .string()
+    .min(1, 'Please confirm your password'),
+  phoneNumber: z
+    .string()
+    .min(10, 'Phone number must be at least 10 digits')
+    .max(15, 'Phone number must be less than 15 digits')
+    .regex(/^[\d+\-\s()]+$/, 'Please enter a valid phone number')
+    .trim(),
   address: z.string().optional().transform((val) => val?.trim() || undefined),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -28,58 +66,78 @@ export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    watch,
+    formState: { errors, isValid },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    mode: 'onChange',
   });
+
+  // Watch password for strength indicator
+  const watchedPassword = watch('password', '');
+  
+  useEffect(() => {
+    if (watchedPassword) {
+      setPasswordStrength(getPasswordStrength(watchedPassword));
+    } else {
+      setPasswordStrength({ score: 0, label: '', color: '' });
+    }
+  }, [watchedPassword]);
 
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
     setMessage(null);
     
     try {
-      // Prepare registration data
+      // Prepare registration data (exclude confirmPassword)
       const registrationData = {
-        fullName: data.fullName.trim(),
-        username: data.username.trim().toLowerCase(),
-        email: data.email.trim(),
+        fullName: data.fullName,
+        username: data.username,
+        email: data.email,
         password: data.password,
-        phoneNumber: data.phoneNumber.trim(),
-        ...(data.neighborhoodId && { neighborhoodId: data.neighborhoodId }),
+        phoneNumber: data.phoneNumber,
         ...(data.address && { address: data.address }),
       };
       
-      console.log('Submitting registration with data:', { ...registrationData, password: '***' });
+      console.log('📤 Sending registration request to /api/v1/auth/register');
       
+      // Send POST request to backend
       const result = await authApi.register(registrationData);
       
-      console.log('Registration response:', result);
+      console.log('✅ Registration successful:', result);
       
       // Extract tokens from response
-      const { accessToken, refreshToken } = result;
+      const { accessToken, refreshToken, user } = result;
       
       if (accessToken && refreshToken) {
         // Save tokens to localStorage
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
-        console.log('Tokens saved successfully');
+        
+        // Save user info if provided
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user));
+        }
         
         // Display success message
         setMessage({ 
           type: 'success', 
-          text: 'Account created successfully! Redirecting to dashboard...' 
+          text: `Welcome ${data.fullName}! Your account has been created. Redirecting to dashboard...` 
         });
         
-        // Redirect to dashboard after 1-2 seconds
+        // Redirect to dashboard after short delay
         setTimeout(() => {
           window.location.href = '/dashboard';
         }, 1500);
       } else {
-        // If tokens are missing, still show success but redirect to login
+        // Tokens missing - redirect to login
         setMessage({ 
           type: 'success', 
           text: 'Account created successfully! Please login to continue.' 
@@ -89,28 +147,36 @@ export default function RegisterPage() {
         }, 2000);
       }
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('❌ Registration error:', error);
       
       let errorMessage = 'Registration failed. Please try again.';
       
       if (error.response) {
-        // Server responded with error status
+        const status = error.response.status;
         const responseData = error.response.data;
         
-        if (responseData.message) {
+        // Handle specific error codes
+        if (status === 409) {
+          errorMessage = 'An account with this email or username already exists.';
+        } else if (status === 400) {
+          if (responseData.message) {
+            errorMessage = Array.isArray(responseData.message) 
+              ? responseData.message.join('. ') 
+              : responseData.message;
+          }
+        } else if (status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (responseData.message) {
           errorMessage = Array.isArray(responseData.message) 
-            ? responseData.message.join(', ') 
+            ? responseData.message.join('. ') 
             : responseData.message;
         } else if (responseData.error) {
-          errorMessage = Array.isArray(responseData.error)
-            ? responseData.error.join(', ')
-            : typeof responseData.error === 'string'
+          errorMessage = typeof responseData.error === 'string'
             ? responseData.error
             : responseData.error.message || errorMessage;
         }
-      } else if (error.request) {
-        // Request was made but no response received
-        errorMessage = 'Unable to connect to server. Please check if the backend is running.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Unable to connect to server. Please check your internet connection.';
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -122,32 +188,38 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold">Create your account</h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Join your neighborhood on Mtaa
+    <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+      <div className="w-full max-w-md space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <div className="mx-auto w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Create Account</h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Join the Mtaa community and connect with your neighborhood
           </p>
         </div>
 
+        {/* Status Message */}
         {message && (
           <div
-            className={`p-4 rounded-lg animate-in fade-in slide-in-from-top-2 ${
+            className={`p-4 rounded-lg ${
               message.type === 'success'
                 ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
                 : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800'
             }`}
           >
-            <div className="flex items-center gap-2">
-              {message.type === 'success' && (
-                <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <div className="flex items-center gap-3">
+              {message.type === 'success' ? (
+                <svg className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-              )}
-              {message.type === 'error' && (
-                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
               <p className="text-sm font-medium">{message.text}</p>
@@ -155,158 +227,252 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Example Info */}
-        <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">
-            💡 Example Registration
-          </h3>
-          <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
-            <p><strong>Full Name:</strong> John Doe</p>
-            <p><strong>Username:</strong> johndoe (letters, numbers, underscores only)</p>
-            <p><strong>Email:</strong> john.doe@example.com</p>
-            <p><strong>Phone:</strong> +254712345678 (10+ digits)</p>
-            <p><strong>Password:</strong> Minimum 6 characters</p>
-          </div>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        {/* Registration Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+          {/* Full Name */}
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium">
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Full Name <span className="text-red-500">*</span>
             </label>
             <input
               {...register('fullName')}
               type="text"
-              required
               autoComplete="name"
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={`w-full px-4 py-2.5 rounded-lg border ${
+                errors.fullName 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+              } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
               placeholder="John Doe"
             />
             {errors.fullName && (
-              <p className="mt-1 text-sm text-red-600">{errors.fullName.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fullName.message}</p>
             )}
           </div>
+
+          {/* Username */}
           <div>
-            <label htmlFor="username" className="block text-sm font-medium">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Username <span className="text-red-500">*</span>
             </label>
-            <input
-              {...register('username')}
-              type="text"
-              required
-              autoComplete="username"
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="johndoe"
-              pattern="[a-zA-Z0-9_]+"
-              title="Username can only contain letters, numbers, and underscores"
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">@</span>
+              <input
+                {...register('username')}
+                type="text"
+                autoComplete="username"
+                className={`w-full pl-8 pr-4 py-2.5 rounded-lg border ${
+                  errors.username 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                placeholder="johndoe"
+              />
+            </div>
             {errors.username && (
-              <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.username.message}</p>
             )}
           </div>
+
+          {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Email Address <span className="text-red-500">*</span>
             </label>
             <input
               {...register('email')}
               type="email"
-              required
               autoComplete="email"
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="your.email@example.com"
+              className={`w-full px-4 py-2.5 rounded-lg border ${
+                errors.email 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+              } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+              placeholder="john@example.com"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
             )}
           </div>
+
+          {/* Phone Number */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium">
-              Password <span className="text-red-500">*</span>
-            </label>
-            <input
-              {...register('password')}
-              type="password"
-              required
-              autoComplete="new-password"
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Minimum 6 characters"
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="phoneNumber" className="block text-sm font-medium">
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Phone Number <span className="text-red-500">*</span>
             </label>
             <input
               {...register('phoneNumber')}
               type="tel"
-              required
               autoComplete="tel"
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="+254712345678"
+              className={`w-full px-4 py-2.5 rounded-lg border ${
+                errors.phoneNumber 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+              } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+              placeholder="+254 712 345 678"
             />
             {errors.phoneNumber && (
-              <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phoneNumber.message}</p>
             )}
           </div>
+
+          {/* Password */}
           <div>
-            <label htmlFor="neighborhoodId" className="block text-sm font-medium">
-              Neighborhood ID (Optional)
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Password <span className="text-red-500">*</span>
             </label>
-            <input
-              {...register('neighborhoodId')}
-              type="text"
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Leave blank if not applicable"
-            />
-            {errors.neighborhoodId && (
-              <p className="mt-1 text-sm text-red-600">{errors.neighborhoodId.message}</p>
+            <div className="relative">
+              <input
+                {...register('password')}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${
+                  errors.password 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {/* Password Strength Indicator */}
+            {watchedPassword && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
+                    />
+                  </div>
+                  <span className={`text-xs font-medium ${
+                    passwordStrength.label === 'Weak' ? 'text-red-500' :
+                    passwordStrength.label === 'Medium' ? 'text-yellow-500' : 'text-green-500'
+                  }`}>
+                    {passwordStrength.label}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Use 8+ characters with uppercase, lowercase, numbers & symbols
+                </p>
+              </div>
+            )}
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.password.message}</p>
             )}
           </div>
+
+          {/* Confirm Password */}
           <div>
-            <label htmlFor="address" className="block text-sm font-medium">
-              Address (Optional)
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Confirm Password <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                {...register('confirmPassword')}
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${
+                  errors.confirmPassword 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword.message}</p>
+            )}
+          </div>
+
+          {/* Address (Optional) */}
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Address <span className="text-gray-400">(Optional)</span>
             </label>
             <input
               {...register('address')}
               type="text"
               autoComplete="street-address"
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="123 Main Street (optional)"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+              placeholder="123 Main Street, Nairobi"
             />
           </div>
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative flex w-full justify-center rounded-lg border border-transparent bg-primary-600 py-3 px-4 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating account...
-                </span>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </div>
-          <div className="text-center">
-            <Link href="/auth/login" className="text-sm text-primary-600 hover:text-primary-500">
-              Already have an account? Login
-            </Link>
-          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                <span>Create Account</span>
+              </>
+            )}
+          </button>
+
+          {/* Terms */}
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+            By creating an account, you agree to our{' '}
+            <Link href="/terms" className="text-primary-600 hover:underline">Terms of Service</Link>
+            {' '}and{' '}
+            <Link href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</Link>
+          </p>
         </form>
+
+        {/* Login Link */}
+        <div className="text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Already have an account?{' '}
+            <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-500">
+              Sign in here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-
-
-
