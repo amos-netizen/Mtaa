@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -7,11 +8,11 @@ async function main() {
 
   // Create default neighborhoods in Nairobi
   const neighborhoods = [
-    { name: 'Kilimani' },
-    { name: 'Westlands' },
-    { name: 'Kasarani' },
-    { name: 'Kibera' },
-    { name: 'Donholm' },
+    { name: 'Kilimani', city: 'Nairobi' },
+    { name: 'Westlands', city: 'Nairobi' },
+    { name: 'Kasarani', city: 'Nairobi' },
+    { name: 'Kibera', city: 'Nairobi' },
+    { name: 'Donholm', city: 'Nairobi' },
   ];
 
   for (const neighborhood of neighborhoods) {
@@ -27,6 +28,28 @@ async function main() {
     } else {
       console.log(`⏭️  Neighborhood already exists: ${neighborhood.name}`);
     }
+  }
+
+  // Create test user
+  const testUserEmail = 'testuser@mtaa.com';
+  const existingTestUser = await prisma.user.findUnique({
+    where: { email: testUserEmail },
+  });
+
+  if (!existingTestUser) {
+    const hashedPassword = await bcrypt.hash('Test@1234', 10);
+    await prisma.user.create({
+      data: {
+        fullName: 'Test User',
+        username: 'testuser',
+        email: testUserEmail,
+        phoneNumber: '0712345678',
+        passwordHash: hashedPassword,
+      },
+    });
+    console.log(`✅ Created test user: ${testUserEmail}`);
+  } else {
+    console.log(`⏭️  Test user already exists: ${testUserEmail}`);
   }
 
   console.log('🎉 Seeding completed!');

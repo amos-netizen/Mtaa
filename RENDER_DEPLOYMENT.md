@@ -67,3 +67,10 @@ Since you're migrating from SQLite to PostgreSQL:
 - **Database connection fails**: Verify `DATABASE_URL` is correctly linked
 - **Prisma errors**: Ensure `prisma:generate` runs before `build`
 - **Port issues**: Render assigns PORT automatically, but you can set it to 10000
+
+
+
+
+
+
+
