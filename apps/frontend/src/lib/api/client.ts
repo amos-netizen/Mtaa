@@ -1,7 +1,27 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 // Get API base URL from environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// In production, this should be set to the Render backend URL
+const getApiBaseUrl = (): string => {
+  // Check for environment variable first
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // In browser, check if we're on a production domain
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // If we're on Vercel (production), use the Render backend
+    if (hostname.includes('vercel.app') || hostname === 'mtaa-frontend-9qnt.vercel.app') {
+      return 'https://mtaa-16.onrender.com';
+    }
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:3001';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * API client with automatic token injection
