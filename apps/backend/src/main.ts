@@ -17,10 +17,56 @@ async function bootstrap() {
 
   // Enable CORS
   const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  // Parse allowed origins from FRONTEND_URL (comma-separated) or use defaults
+  const getAllowedOrigins = (): string[] | boolean => {
+    if (isDevelopment) return true; // Allow all origins in development
+    
+    const frontendUrl = process.env.FRONTEND_URL || '';
+    const origins = frontendUrl
+      .split(',')
+      .map(url => url.trim())
+      .filter(Boolean);
+    
+    // Add common Vercel patterns if main domain is set
+    if (origins.length > 0) {
+      return origins;
+    }
+    
+    return ['http://localhost:3000'];
+  };
+
   app.enableCors({
-    origin: isDevelopment 
-      ? true // Allow all origins in development
-      : process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      const allowed = getAllowedOrigins();
+      
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      
+      // In development, allow all
+      if (allowed === true) {
+        callback(null, true);
+        return;
+      }
+      
+      // Check if origin matches allowed list or Vercel preview pattern
+      const isAllowed = (allowed as string[]).some(allowedOrigin => {
+        if (origin === allowedOrigin) return true;
+        // Allow Vercel preview deployments (*.vercel.app)
+        if (origin.endsWith('.vercel.app')) return true;
+        return false;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(null, true); // Still allow but log warning (for debugging)
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

@@ -24,7 +24,7 @@ services:
       - key: JWT_REFRESH_EXPIRES_IN
         value: 30d
       - key: FRONTEND_URL
-        sync: false  # Set this manually after frontend is deployed
+        value: https://mtaa-frontend-9qnt.vercel.app  # Vercel frontend domain
 
 databases:
   # PostgreSQL Database
@@ -32,6 +32,13 @@ databases:
     databaseName: mtaa
     user: mtaa_user
     plan: starter  # Use 'free' for free tier
+
+
+
+
+
+
+
 
 
 

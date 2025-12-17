@@ -1,5 +1,8 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
+// Get API base URL from environment variable
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 /**
  * API client with automatic token injection
  */
@@ -8,7 +11,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API || 'http://localhost:3001',
+      baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -42,7 +45,7 @@ class ApiClient {
             if (refreshToken) {
               // Attempt to refresh token
               const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_API || 'http://localhost:3001'}/api/v1/auth/refresh-token`,
+                `${API_BASE_URL}/api/v1/auth/refresh-token`,
                 { refreshToken }
               );
 
