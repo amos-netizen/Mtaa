@@ -5,7 +5,7 @@ services:
     env: node
     region: oregon  # Change to your preferred region
     plan: starter  # Use 'free' for free tier
-    buildCommand: cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npm run prisma:migrate:deploy
+    buildCommand: cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npx prisma db push --accept-data-loss
     startCommand: node dist/main.js
     rootDir: apps/backend
     envVars:

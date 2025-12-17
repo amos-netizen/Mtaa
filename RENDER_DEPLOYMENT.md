@@ -11,7 +11,7 @@
 
 ### Build Settings
 - **Root Directory**: `apps/backend`
-- **Build Command**: `cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npm run prisma:migrate:deploy`
+- **Build Command**: `cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npx prisma db push --accept-data-loss`
 - **Start Command**: `node dist/main.js`
 
 ### Environment Variables (Minimum Required)
@@ -67,6 +67,7 @@ Since you're migrating from SQLite to PostgreSQL:
 - **Database connection fails**: Verify `DATABASE_URL` is correctly linked
 - **Prisma errors**: Ensure `prisma:generate` runs before `build`
 - **Port issues**: Render assigns PORT automatically, but you can set it to 10000
+
 
 
 
