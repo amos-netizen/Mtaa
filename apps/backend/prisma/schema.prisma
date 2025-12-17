@@ -280,6 +280,8 @@ model MarketplaceListing {
   condition         String? // "NEW", "LIKE_NEW", "GOOD", "FAIR", "POOR"
   images            String // JSON array of image URLs (up to 8, required)
   pickupLocation    String?
+  latitude          Float?    // Location for "nearby" feature
+  longitude         Float?    // Location for "nearby" feature
   deliveryAvailable Boolean   @default(false)
   isSold            Boolean   @default(false)
   soldAt            DateTime?
@@ -312,6 +314,8 @@ model Recommendation {
   description  String
   businessName String? // Tagged business name
   rating       Int? // 1-5 stars
+  latitude     Float?   // Location for "nearby" feature
+  longitude    Float?   // Location for "nearby" feature
   isAsking     Boolean  @default(false) // true if asking for recommendation
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

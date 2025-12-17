@@ -76,6 +76,14 @@ export default function DashboardPage() {
 
   const mainFeatures = [
     {
+      icon: '📍',
+      title: 'Nearby',
+      description: 'Discover items, services & alerts near you',
+      href: '/nearby',
+      color: 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600',
+      actions: ['View Map', 'Find Services', 'Safety Alerts', 'Filter by Distance']
+    },
+    {
       icon: '📦',
       title: 'Marketplace',
       description: 'Buy and sell items locally',

@@ -3,12 +3,46 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { authApi } from '@/lib/api/auth';
 import { postsApi } from '@/lib/api/posts';
 import { neighborhoodsApi } from '@/lib/api/neighborhoods';
+import { useGeolocation, KENYA_LOCATIONS } from '@/lib/hooks/useGeolocation';
+
+// Dynamic imports for map components
+const SafetyAlertMap = dynamic(() => import('@/components/maps/SafetyAlertMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-96 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center animate-pulse">
+      <span className="text-gray-500">Loading map...</span>
+    </div>
+  ),
+});
+
+const LocationPicker = dynamic(() => import('@/components/maps/LocationPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center animate-pulse">
+      <span className="text-gray-500">Loading location picker...</span>
+    </div>
+  ),
+});
+
+type ViewMode = 'list' | 'map';
+type AlertType = 'CRIME' | 'FIRE' | 'ACCIDENT' | 'SUSPICIOUS_ACTIVITY' | 'NATURAL_DISASTER' | 'OTHER';
+
+const ALERT_TYPE_OPTIONS: { value: AlertType; label: string; icon: string }[] = [
+  { value: 'CRIME', label: 'Crime', icon: '🚔' },
+  { value: 'FIRE', label: 'Fire', icon: '🔥' },
+  { value: 'ACCIDENT', label: 'Accident', icon: '🚗' },
+  { value: 'SUSPICIOUS_ACTIVITY', label: 'Suspicious Activity', icon: '👁️' },
+  { value: 'NATURAL_DISASTER', label: 'Natural Disaster', icon: '🌪️' },
+  { value: 'OTHER', label: 'Other', icon: '⚠️' },
+];
 
 export default function AlertsPage() {
   const router = useRouter();
+  const { latitude, longitude, requestLocation } = useGeolocation();
   const [user, setUser] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
@@ -16,9 +50,13 @@ export default function AlertsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('');
   const [showForm, setShowForm] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    alertType: 'OTHER' as AlertType,
+    isUrgent: false,
+    location: null as { lat: number; lng: number } | null,
   });
 
   useEffect(() => {
@@ -69,6 +107,20 @@ export default function AlertsPage() {
     fetchData();
   }, [router, selectedNeighborhood]);
 
+  // Convert alerts to SafetyAlertMap format
+  const mapAlerts = alerts.map((alert) => ({
+    id: alert.id,
+    type: (alert.metadata?.alertType as AlertType) || 'OTHER',
+    title: alert.title,
+    description: alert.description,
+    lat: alert.metadata?.location?.lat || alert.neighborhood?.latitude || KENYA_LOCATIONS.nairobi.lat + (Math.random() - 0.5) * 0.05,
+    lng: alert.metadata?.location?.lng || alert.neighborhood?.longitude || KENYA_LOCATIONS.nairobi.lon + (Math.random() - 0.5) * 0.05,
+    isUrgent: alert.metadata?.isUrgent || false,
+    isVerified: alert.isVerified || false,
+    createdAt: alert.createdAt,
+    author: alert.author,
+  }));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -89,6 +141,11 @@ export default function AlertsPage() {
         neighborhoodId,
         type: 'SAFETY_ALERT',
         category: 'SAFETY',
+        metadata: {
+          alertType: formData.alertType,
+          isUrgent: formData.isUrgent,
+          location: formData.location,
+        },
       });
 
       // Refresh alerts
@@ -99,7 +156,13 @@ export default function AlertsPage() {
       setAlerts(safetyAlerts);
 
       // Reset form
-      setFormData({ title: '', description: '' });
+      setFormData({ 
+        title: '', 
+        description: '', 
+        alertType: 'OTHER', 
+        isUrgent: false, 
+        location: null 
+      });
       setShowForm(false);
     } catch (error) {
       console.error('Failed to create alert:', error);
@@ -122,12 +185,15 @@ export default function AlertsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-red-600 shadow-sm">
+      <header className="bg-gradient-to-r from-red-600 to-red-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🚨</span>
-              <h1 className="text-2xl font-bold text-white">Emergency Alerts</h1>
+              <span className="text-3xl animate-pulse">🚨</span>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Emergency Alerts</h1>
+                <p className="text-red-200 text-sm">Real-time safety updates in your area</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <Link
@@ -138,9 +204,13 @@ export default function AlertsPage() {
               </Link>
               <button
                 onClick={() => setShowForm(!showForm)}
-                className="px-4 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                className="px-4 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center gap-2"
               >
-                {showForm ? 'Cancel' : '+ Create Alert'}
+                {showForm ? (
+                  <>✕ Cancel</>
+                ) : (
+                  <>🚨 Report Alert</>
+                )}
               </button>
             </div>
           </div>
@@ -162,34 +232,98 @@ export default function AlertsPage() {
           </div>
         </div>
 
-        {/* Neighborhood Filter */}
+        {/* View Toggle & Filters */}
         <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Filter by Neighborhood:
-            </label>
-            <select
-              value={selectedNeighborhood}
-              onChange={(e) => setSelectedNeighborhood(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">All Neighborhoods</option>
-              {neighborhoods.map((neighborhood) => (
-                <option key={neighborhood.id} value={neighborhood.id}>
-                  {neighborhood.name} - {neighborhood.city}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filter by Neighborhood:
+              </label>
+              <select
+                value={selectedNeighborhood}
+                onChange={(e) => setSelectedNeighborhood(e.target.value)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">All Neighborhoods</option>
+                {neighborhoods.map((neighborhood) => (
+                  <option key={neighborhood.id} value={neighborhood.id}>
+                    {neighborhood.name} - {neighborhood.city}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* View mode toggle */}
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('map')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                  viewMode === 'map'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                }`}
+              >
+                🗺️ Map View
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
+                }`}
+              >
+                📋 List View
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Create Alert Form */}
         {showForm && (
-          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border-2 border-red-200 dark:border-red-800">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span>🚨</span> Create Safety Alert
+              <span className="animate-pulse">🚨</span> Report Safety Alert
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Alert Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Alert Type *
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ALERT_TYPE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, alertType: option.value })}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                        formData.alertType === option.value
+                          ? 'bg-red-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {option.icon} {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Urgent toggle */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isUrgent"
+                  checked={formData.isUrgent}
+                  onChange={(e) => setFormData({ ...formData, isUrgent: e.target.checked })}
+                  className="w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500"
+                />
+                <label htmlFor="isUrgent" className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-red-600 animate-pulse">⚡</span> 
+                  Mark as URGENT (immediate danger)
+                </label>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Alert Title *
@@ -203,6 +337,7 @@ export default function AlertsPage() {
                   required
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Alert Details *
@@ -216,6 +351,20 @@ export default function AlertsPage() {
                   required
                 />
               </div>
+
+              {/* Location Picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  📍 Alert Location (optional but recommended)
+                </label>
+                <LocationPicker
+                  onLocationSelect={(loc) => setFormData({ ...formData, location: { lat: loc.lat, lng: loc.lng } })}
+                  initialLocation={formData.location || undefined}
+                  height="250px"
+                  showPresets={true}
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Neighborhood *
@@ -234,18 +383,29 @@ export default function AlertsPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex gap-4">
+
+              <div className="flex gap-4 pt-4">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
                 >
-                  {submitting ? 'Posting...' : '🚨 Share Alert'}
+                  {submitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Posting...
+                    </>
+                  ) : (
+                    <>🚨 Share Alert</>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
@@ -254,58 +414,96 @@ export default function AlertsPage() {
           </div>
         )}
 
-        {/* Alerts List */}
-        <div className="space-y-4">
-          {alerts.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-              <span className="text-6xl mb-4 block">🛡️</span>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                No Active Alerts
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                Your neighborhood is safe! There are no active emergency alerts at this time.
-              </p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Report a Safety Concern
-              </button>
-            </div>
-          ) : (
-            alerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg p-6"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">🚨</span>
-                    <div>
-                      <h3 className="text-lg font-semibold text-red-900 dark:text-red-200">
-                        {alert.title}
-                      </h3>
-                      <p className="text-sm text-red-700 dark:text-red-300">
-                        {alert.neighborhood?.name || 'Unknown Area'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 px-3 py-1 rounded-full">
-                    {new Date(alert.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-red-800 dark:text-red-200 mb-4">
-                  {alert.description}
+        {/* Map View */}
+        {viewMode === 'map' && !showForm && (
+          <div className="mb-8">
+            <SafetyAlertMap
+              alerts={mapAlerts}
+              height="500px"
+              showUserLocation={true}
+              onAlertClick={(alert) => console.log('Alert clicked:', alert)}
+            />
+          </div>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <div className="space-y-4">
+            {alerts.length === 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+                <span className="text-6xl mb-4 block">🛡️</span>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  No Active Alerts
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  Your neighborhood is safe! There are no active emergency alerts at this time.
                 </p>
-                <div className="flex items-center gap-4 text-sm text-red-600 dark:text-red-400">
-                  <span>Posted by {alert.author?.fullName || 'Community Member'}</span>
-                  <span>•</span>
-                  <span>{alert.likeCount || 0} confirmations</span>
-                </div>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Report a Safety Concern
+                </button>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              alerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`bg-white dark:bg-gray-800 border-2 rounded-lg p-6 ${
+                    alert.metadata?.isUrgent
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">
+                        {ALERT_TYPE_OPTIONS.find(o => o.value === alert.metadata?.alertType)?.icon || '🚨'}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {alert.title}
+                          </h3>
+                          {alert.metadata?.isUrgent && (
+                            <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full animate-pulse">
+                              URGENT
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {alert.neighborhood?.name || 'Unknown Area'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+                      {new Date(alert.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    {alert.description}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span>Posted by {alert.author?.fullName || 'Community Member'}</span>
+                    <span>•</span>
+                    <span>{alert.likeCount || 0} confirmations</span>
+                    {alert.metadata?.location && (
+                      <>
+                        <span>•</span>
+                        <button
+                          onClick={() => window.open(`https://www.google.com/maps?q=${alert.metadata.location.lat},${alert.metadata.location.lng}`, '_blank')}
+                          className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        >
+                          📍 View on Map
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
         {/* Emergency Contacts */}
         <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -313,21 +511,25 @@ export default function AlertsPage() {
             📞 Emergency Contacts
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <p className="font-semibold text-red-900 dark:text-red-200">Police</p>
+            <a href="tel:999" className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition">
+              <p className="font-semibold text-red-900 dark:text-red-200">Police Emergency</p>
               <p className="text-2xl font-bold text-red-600">999 / 112</p>
-            </div>
-            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">Tap to call</p>
+            </a>
+            <a href="tel:999" className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition">
               <p className="font-semibold text-orange-900 dark:text-orange-200">Fire Brigade</p>
               <p className="text-2xl font-bold text-orange-600">999</p>
-            </div>
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">Tap to call</p>
+            </a>
+            <a href="tel:999" className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
               <p className="font-semibold text-blue-900 dark:text-blue-200">Ambulance</p>
               <p className="text-2xl font-bold text-blue-600">999</p>
-            </div>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">Tap to call</p>
+            </a>
           </div>
         </div>
       </main>
     </div>
   );
 }
+

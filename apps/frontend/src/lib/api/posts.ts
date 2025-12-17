@@ -31,6 +31,12 @@ export const postsApi = {
     images?: string[];
     videos?: string[];
     isAnonymous?: boolean;
+    // Extended fields for safety alerts
+    metadata?: {
+      alertType?: string;
+      isUrgent?: boolean;
+      location?: { lat: number; lng: number } | null;
+    };
   }) {
     const response = await apiClient.instance.post('/api/v1/posts', data);
     return response.data.data;
