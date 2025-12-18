@@ -566,7 +566,7 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: {
         emailVerificationToken: token,
-        emailVerificationExpires: {
+        emailVerificationExpiresAt: {
           gt: new Date(), // Token not expired
         },
       },
@@ -582,7 +582,7 @@ export class AuthService {
       data: {
         emailVerified: true,
         emailVerificationToken: null,
-        emailVerificationExpires: null,
+        emailVerificationExpiresAt: null,
       },
     });
 
