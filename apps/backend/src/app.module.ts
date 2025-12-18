@@ -17,6 +17,7 @@ import { NearbyModule } from './nearby/nearby.module';
 import { PlacesModule } from './places/places.module';
 import { ReportsModule } from './reports/reports.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { EmailModule } from './email/email.module';
 import { AppController } from './app.controller';
 
 /**
@@ -43,6 +44,7 @@ import { AppController } from './app.controller';
     PlacesModule,
     ReportsModule,
     ReviewsModule,
+    EmailModule,
   ],
   controllers: [AppController],
 })

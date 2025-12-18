@@ -36,6 +36,11 @@ model User {
   isBanned           Boolean   @default(false)
   banReason          String?
   banExpiresAt       DateTime?
+  emailVerified      Boolean   @default(false)
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   lastSeenAt         DateTime?

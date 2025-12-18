@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { ConfigModule } from '../config/config.module';
+import { EmailModule } from '../email/email.module';
 import { PasswordUtil } from '../common/utils/password.util';
 import { AppConfigService } from '../config/config.service';
 
@@ -17,6 +18,7 @@ import { AppConfigService } from '../config/config.service';
   imports: [
     ConfigModule,
     UsersModule,
+    EmailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: (configService: AppConfigService) => ({

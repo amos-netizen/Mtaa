@@ -56,6 +56,13 @@ export class AppConfigService {
   get isProduction(): boolean {
     return this.nodeEnv === 'production';
   }
+
+  /**
+   * Get any configuration value by key
+   */
+  get(key: string, defaultValue?: string): string | undefined {
+    return this.configService.get<string>(key, defaultValue);
+  }
 }
 
 

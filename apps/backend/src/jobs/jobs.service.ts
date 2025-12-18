@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class JobsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   /**
    * Get all job listings
@@ -228,6 +232,34 @@ export class JobsService {
       throw new NotFoundException('Job not found');
     }
 
+    // Get job author (employer) details
+    const jobWithAuthor = await this.prisma.post.findUnique({
+      where: { id: jobId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (!jobWithAuthor) {
+      throw new NotFoundException('Job not found');
+    }
+
+    // Get applicant details
+    const applicant = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+      },
+    });
+
     // Create application as a comment
     const application = await this.prisma.comment.create({
       data: {
@@ -246,6 +278,19 @@ export class JobsService {
         },
       },
     });
+
+    // Send email notification to employer if they have an email
+    if (jobWithAuthor.author.email && applicant) {
+      this.emailService.sendJobApplicationEmail(
+        jobWithAuthor.author.email,
+        applicant.fullName,
+        jobWithAuthor.title,
+        applicationData.coverLetter
+      ).catch((error) => {
+        console.error('Failed to send job application email:', error);
+        // Don't throw - application should succeed even if email fails
+      });
+    }
 
     return application;
   }
