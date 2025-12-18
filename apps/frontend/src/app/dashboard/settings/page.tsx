@@ -72,7 +72,7 @@ export default function SettingsPage() {
 
   // Privacy preferences state
   const [privacy, setPrivacy] = useState({
-    showPhone: true,
+    showPhone: false,
     showEmail: false,
     allowMessages: 'everyone' as 'everyone' | 'neighbors' | 'none',
     profileVisibility: 'public' as 'public' | 'limited' | 'private',

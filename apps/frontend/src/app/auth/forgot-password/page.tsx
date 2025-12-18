@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import { apiClient } from '@/lib/api/client';
 
 const forgotPasswordSchema = z.object({
   phoneNumber: z.string().min(10, 'Phone number must be at least 10 characters').optional().or(z.literal('')),
@@ -47,35 +48,21 @@ export default function ForgotPasswordPage() {
 
       console.log('Sending OTP request:', requestBody);
       
-      const response = await fetch('http://localhost:3001/api/v1/auth/login/otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      try {
+        const response = await apiClient.instance.post('/api/v1/auth/login/otp', requestBody);
+        const responseData = response.data;
+        console.log('Response data:', responseData);
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-
-      if (!response.ok) {
-        const errorMessage = responseData.message || responseData.error || 'Failed to send OTP. Please try again.';
+        setOtpSent(true);
+        const successMessage = contactMethod === 'phone' 
+          ? 'OTP sent successfully to your phone number!'
+          : 'OTP sent successfully to your email address!';
+        setMessage({ type: 'success', text: successMessage });
+      } catch (error: any) {
+        console.error('OTP request error:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Network error. Please check your connection and try again.';
         setMessage({ type: 'error', text: errorMessage });
-        return;
       }
-
-      setOtpSent(true);
-      const successMessage = contactMethod === 'phone' 
-        ? 'OTP sent successfully to your phone number!'
-        : 'OTP sent successfully to your email address!';
-      setMessage({ type: 'success', text: successMessage });
-    } catch (error: any) {
-      console.error('OTP request error:', error);
-      const errorMessage = error.message || 'Network error. Please check your connection and try again.';
-      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -102,28 +89,13 @@ export default function ForgotPasswordPage() {
 
       console.log('Verifying OTP:', requestBody);
       
-      const response = await fetch('http://localhost:3001/api/v1/auth/verify-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      try {
+        const response = await apiClient.instance.post('/api/v1/auth/verify-otp', requestBody);
+        const responseData = response.data;
+        console.log('Response data:', responseData);
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-
-      if (!response.ok) {
-        const errorMessage = responseData.message || responseData.error || 'Invalid OTP. Please try again.';
-        setMessage({ type: 'error', text: errorMessage });
-        return;
-      }
-
-      // Extract tokens from response
-      const tokens = responseData.data || responseData;
+        // Extract tokens from response
+        const tokens = responseData.data || responseData;
       const accessToken = tokens?.accessToken;
       const refreshToken = tokens?.refreshToken;
 
@@ -143,13 +115,14 @@ export default function ForgotPasswordPage() {
           setMessage({ type: 'error', text: 'OTP verified but failed to save tokens. Please try again.' });
         }
       } else {
-        console.error('Unexpected response format:', JSON.stringify(responseData, null, 2));
-        setMessage({ type: 'error', text: 'OTP verified but tokens not received. Please try again.' });
+          console.error('Unexpected response format:', JSON.stringify(responseData, null, 2));
+          setMessage({ type: 'error', text: 'OTP verified but tokens not received. Please try again.' });
+        }
+      } catch (error: any) {
+        console.error('OTP verification error:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Network error. Please check your connection and try again.';
+        setMessage({ type: 'error', text: errorMessage });
       }
-    } catch (error: any) {
-      console.error('OTP verification error:', error);
-      const errorMessage = error.message || 'Network error. Please check your connection and try again.';
-      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsLoading(false);
     }
