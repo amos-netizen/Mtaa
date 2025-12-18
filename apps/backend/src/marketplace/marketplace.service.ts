@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 
 @Injectable()
 export class MarketplaceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   /**
    * Get all marketplace listings with filters
@@ -206,6 +210,27 @@ export class MarketplaceService {
       },
     });
 
+    // Get seller info for email notification
+    const seller = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, fullName: true },
+    });
+
+    // Send confirmation email to seller (async, non-blocking)
+    if (seller?.email) {
+      this.emailService.sendEmailAsync(
+        () => this.emailService.sendNotificationEmail(
+          seller.email!,
+          'Listing Created Successfully',
+          `Your marketplace listing "${createListingDto.title}" has been created and is now live!`,
+          'success',
+          '/marketplace',
+          'View Listing'
+        ),
+        'Marketplace Listing Created'
+      );
+    }
+
     return {
       ...listing,
       images: JSON.parse(listing.images || '[]'),
@@ -278,9 +303,18 @@ export class MarketplaceService {
   /**
    * Mark listing as sold
    */
-  async markAsSold(userId: string, id: string) {
+  async markAsSold(userId: string, id: string, buyerId?: string) {
     const listing = await this.prisma.marketplaceListing.findUnique({
       where: { id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          },
+        },
+      },
     });
 
     if (!listing) {
@@ -291,13 +325,39 @@ export class MarketplaceService {
       throw new ForbiddenException('You can only mark your own listings as sold');
     }
 
-    return this.prisma.marketplaceListing.update({
+    const updated = await this.prisma.marketplaceListing.update({
       where: { id },
       data: {
         isSold: true,
         soldAt: new Date(),
       },
     });
+
+    // Send email notification to seller about the sale (async)
+    if (listing.author.email) {
+      let buyerName = 'A buyer';
+      if (buyerId) {
+        const buyer = await this.prisma.user.findUnique({
+          where: { id: buyerId },
+          select: { fullName: true },
+        });
+        if (buyer) {
+          buyerName = buyer.fullName;
+        }
+      }
+
+      this.emailService.sendEmailAsync(
+        () => this.emailService.sendMarketplaceUpdateEmail(
+          listing.author.email!,
+          listing.title,
+          'purchase',
+          buyerName
+        ),
+        'Marketplace Item Sold'
+      );
+    }
+
+    return updated;
   }
 
   /**

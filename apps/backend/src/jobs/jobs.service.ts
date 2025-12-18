@@ -279,17 +279,17 @@ export class JobsService {
       },
     });
 
-    // Send email notification to employer if they have an email
+    // Send email notification to employer immediately (real-time, async)
     if (jobWithAuthor.author.email && applicant) {
-      this.emailService.sendJobApplicationEmail(
-        jobWithAuthor.author.email,
-        applicant.fullName,
-        jobWithAuthor.title,
-        applicationData.coverLetter
-      ).catch((error) => {
-        console.error('Failed to send job application email:', error);
-        // Don't throw - application should succeed even if email fails
-      });
+      this.emailService.sendEmailAsync(
+        () => this.emailService.sendJobApplicationEmail(
+          jobWithAuthor.author.email,
+          applicant.fullName,
+          jobWithAuthor.title,
+          applicationData.coverLetter
+        ),
+        'Job Application Notification'
+      );
     }
 
     return application;

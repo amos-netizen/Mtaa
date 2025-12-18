@@ -86,7 +86,7 @@ export class AuthService {
       // Generate tokens
       const tokens = await this.generateTokens(user.id);
 
-      // Send verification email if email is provided
+      // Send verification email if email is provided (real-time, async)
       if (user.email) {
         // Generate verification token
         const verificationToken = randomBytes(32).toString('hex');
@@ -102,15 +102,15 @@ export class AuthService {
           },
         });
 
-        // Send email asynchronously (don't wait for it)
-        this.emailService.sendVerificationEmail(
-          user.email,
-          verificationToken,
-          user.fullName
-        ).catch((error) => {
-          console.error('Failed to send verification email:', error);
-          // Don't throw - registration should succeed even if email fails
-        });
+        // Send email immediately asynchronously (real-time, non-blocking)
+        this.emailService.sendEmailAsync(
+          () => this.emailService.sendVerificationEmail(
+            user.email!,
+            verificationToken,
+            user.fullName
+          ),
+          'User Registration Verification'
+        );
       }
 
       return {
@@ -496,15 +496,15 @@ export class AuthService {
       },
     });
 
-    // Send password reset email asynchronously
-    this.emailService.sendPasswordResetEmail(
-      user.email,
-      resetToken,
-      user.fullName
-    ).catch((error) => {
-      console.error('Failed to send password reset email:', error);
-      // Don't throw - still return success message for security
-    });
+    // Send password reset email immediately (real-time, async)
+    this.emailService.sendEmailAsync(
+      () => this.emailService.sendPasswordResetEmail(
+        user.email,
+        resetToken,
+        user.fullName
+      ),
+      'Password Reset Request'
+    );
 
     return { message: 'If an account exists with this email, a password reset link has been sent.' };
   }

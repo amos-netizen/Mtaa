@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class ServicesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   /**
    * Get all service listings
@@ -165,6 +169,34 @@ export class ServicesService {
       throw new NotFoundException('Service not found');
     }
 
+    // Get service provider details
+    const serviceWithProvider = await this.prisma.post.findUnique({
+      where: { id: serviceId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (!serviceWithProvider) {
+      throw new NotFoundException('Service not found');
+    }
+
+    // Get customer details
+    const customer = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+      },
+    });
+
     // Create booking request as a comment
     const booking = await this.prisma.comment.create({
       data: {
@@ -184,6 +216,21 @@ export class ServicesService {
         },
       },
     });
+
+    // Send email notification to service provider (async, non-blocking)
+    if (serviceWithProvider.author.email && customer) {
+      this.emailService.sendEmailAsync(
+        () => this.emailService.sendServiceBookingEmail(
+          serviceWithProvider.author.email!,
+          serviceWithProvider.title,
+          customer.fullName,
+          bookingData.message,
+          bookingData.preferredDate,
+          bookingData.preferredTime
+        ),
+        'Service Booking Notification'
+      );
+    }
 
     return booking;
   }

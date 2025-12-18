@@ -530,5 +530,220 @@ export class EmailService implements OnModuleInit {
       html,
     });
   }
+
+  /**
+   * Send marketplace listing update notification
+   * Notifies seller when someone shows interest or buys their item
+   */
+  async sendMarketplaceUpdateEmail(
+    sellerEmail: string,
+    listingTitle: string,
+    updateType: 'interest' | 'purchase' | 'message',
+    buyerName: string,
+    buyerMessage?: string,
+  ): Promise<EmailResult> {
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+    const listingLink = `${frontendUrl}/marketplace`;
+
+    let subject = '';
+    let content = '';
+
+    switch (updateType) {
+      case 'purchase':
+        subject = `🎉 Your item "${listingTitle}" has been purchased!`;
+        content = `
+          <p><strong>Great news!</strong> Your marketplace listing has been purchased.</p>
+          <p><strong>Buyer:</strong> ${buyerName}</p>
+          <p>Please contact the buyer to arrange pickup or delivery.</p>
+        `;
+        break;
+      case 'interest':
+        subject = `👀 Someone is interested in "${listingTitle}"`;
+        content = `
+          <p><strong>${buyerName}</strong> is interested in your marketplace listing.</p>
+          ${buyerMessage ? `<p><strong>Message:</strong> ${buyerMessage}</p>` : ''}
+        `;
+        break;
+      case 'message':
+        subject = `💬 New message about "${listingTitle}"`;
+        content = `
+          <p><strong>${buyerName}</strong> sent you a message about your listing.</p>
+          ${buyerMessage ? `<p><strong>Message:</strong> ${buyerMessage}</p>` : ''}
+        `;
+        break;
+    }
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Marketplace Update - MTAA</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">Marketplace Update</h1>
+          </div>
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #667eea; margin-top: 0;">${listingTitle}</h2>
+            ${content}
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${listingLink}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">View Listing</a>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="font-size: 12px; color: #666;">© ${new Date().getFullYear()} MTAA. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: sellerEmail,
+      subject,
+      html,
+    });
+  }
+
+  /**
+   * Send service booking notification email
+   * Notifies service provider when someone books their service
+   */
+  async sendServiceBookingEmail(
+    providerEmail: string,
+    serviceTitle: string,
+    customerName: string,
+    bookingMessage: string,
+    preferredDate?: string,
+    preferredTime?: string,
+  ): Promise<EmailResult> {
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+    const serviceLink = `${frontendUrl}/services`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Service Booking - MTAA</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">📅 New Service Booking</h1>
+          </div>
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p>You have received a new booking request for your service:</p>
+            <h2 style="color: #f5576c;">${serviceTitle}</h2>
+            <p><strong>Customer:</strong> ${customerName}</p>
+            ${preferredDate ? `<p><strong>Preferred Date:</strong> ${preferredDate}</p>` : ''}
+            ${preferredTime ? `<p><strong>Preferred Time:</strong> ${preferredTime}</p>` : ''}
+            <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f5576c;">
+              <h3 style="margin-top: 0;">Customer Message:</h3>
+              <p style="white-space: pre-wrap; margin: 0;">${bookingMessage}</p>
+            </div>
+            <p>Please contact the customer to confirm the booking details.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${serviceLink}" style="background: #f5576c; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">View Service</a>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="font-size: 12px; color: #666;">© ${new Date().getFullYear()} MTAA. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: providerEmail,
+      subject: `New Booking: ${serviceTitle} - MTAA`,
+      html,
+    });
+  }
+
+  /**
+   * Send generic notification email
+   * For various app notifications
+   */
+  async sendNotificationEmail(
+    recipientEmail: string,
+    notificationTitle: string,
+    notificationMessage: string,
+    notificationType: 'info' | 'success' | 'warning' | 'alert',
+    actionLink?: string,
+    actionText?: string,
+  ): Promise<EmailResult> {
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+    const fullLink = actionLink ? (actionLink.startsWith('http') ? actionLink : `${frontendUrl}${actionLink}`) : null;
+
+    const colors = {
+      info: { bg: '#4facfe', text: '#00f2fe' },
+      success: { bg: '#11998e', text: '#38ef7d' },
+      warning: { bg: '#f093fb', text: '#f5576c' },
+      alert: { bg: '#ff6b6b', text: '#ee5a6f' },
+    };
+
+    const color = colors[notificationType];
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${notificationTitle} - MTAA</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, ${color.bg} 0%, ${color.text} 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">${notificationTitle}</h1>
+          </div>
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border-left: 4px solid ${color.bg};">
+            <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0; white-space: pre-wrap;">${notificationMessage}</p>
+            </div>
+            ${fullLink && actionText ? `
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${fullLink}" style="background: ${color.bg}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">${actionText}</a>
+              </div>
+            ` : ''}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="font-size: 12px; color: #666;">© ${new Date().getFullYear()} MTAA. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: recipientEmail,
+      subject: `${notificationTitle} - MTAA`,
+      html,
+    });
+  }
+
+  /**
+   * Send email asynchronously with enhanced error handling
+   * Wrapper method for fire-and-forget email sending
+   */
+  async sendEmailAsync(
+    emailMethod: () => Promise<EmailResult>,
+    context: string = 'Email',
+  ): Promise<void> {
+    // Execute email sending in background without blocking
+    setImmediate(async () => {
+      try {
+        const result = await emailMethod();
+        if (result.success) {
+          this.logger.log(`[${context}] Email sent successfully: ${result.messageId}`);
+        } else {
+          this.logger.error(`[${context}] Email failed: ${result.error}`);
+        }
+      } catch (error: any) {
+        this.logger.error(`[${context}] Email sending error:`, {
+          error: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+  }
 }
 

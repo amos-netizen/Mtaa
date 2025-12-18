@@ -175,7 +175,7 @@ export class PostsService {
       },
     });
 
-    // Send emergency alert emails if this is a safety alert
+    // Send emergency alert emails immediately if this is a safety alert (real-time)
     if (data.type === 'SAFETY_ALERT' && post.neighborhood) {
       // Get all users in the neighborhood who have email notifications enabled
       const neighborhoodUsers = await this.prisma.userNeighborhood.findMany({
@@ -193,19 +193,19 @@ export class PostsService {
         },
       });
 
-      // Send email to each user in the neighborhood (asynchronously)
+      // Send email to each user in the neighborhood immediately (async, non-blocking)
       neighborhoodUsers.forEach((userNeighborhood) => {
         if (userNeighborhood.user.email) {
-          this.emailService.sendEmergencyAlertEmail(
-            userNeighborhood.user.email,
-            data.title,
-            data.description,
-            data.category || 'OTHER',
-            post.neighborhood.name
-          ).catch((error) => {
-            console.error(`Failed to send alert email to ${userNeighborhood.user.email}:`, error);
-            // Don't throw - alert should be created even if emails fail
-          });
+          this.emailService.sendEmailAsync(
+            () => this.emailService.sendEmergencyAlertEmail(
+              userNeighborhood.user.email!,
+              data.title,
+              data.description,
+              data.category || 'OTHER',
+              post.neighborhood.name
+            ),
+            `Emergency Alert: ${userNeighborhood.user.email}`
+          );
         }
       });
     }
