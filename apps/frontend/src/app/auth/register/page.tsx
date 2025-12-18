@@ -50,6 +50,7 @@ const registerSchema = z.object({
     .min(1, 'Please confirm your password'),
   phoneNumber: z
     .string()
+    .trim()
     .min(10, 'Phone number must be at least 10 digits')
     .max(15, 'Phone number must be less than 15 digits')
     .regex(/^[\d+\-\s()]+$/, 'Please enter a valid phone number')
@@ -63,8 +64,7 @@ const registerSchema = z.object({
       {
         message: 'Please enter a valid phone number (e.g., +254712345678)',
       }
-    )
-    .trim(),
+    ),
   address: z.string().optional().transform((val) => val?.trim() || undefined),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -108,14 +108,24 @@ export default function RegisterPage() {
     
     try {
       // Prepare registration data (exclude confirmPassword)
-      const registrationData = {
+      const registrationData: {
+        fullName: string;
+        username: string;
+        email: string;
+        password: string;
+        phoneNumber: string;
+        address?: string;
+      } = {
         fullName: data.fullName,
         username: data.username,
         email: data.email,
         password: data.password,
         phoneNumber: data.phoneNumber,
-        ...(data.address && { address: data.address }),
       };
+      
+      if (data.address) {
+        registrationData.address = data.address;
+      }
       
       console.log('📤 Sending registration request to /api/v1/auth/register');
       
