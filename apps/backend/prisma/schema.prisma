@@ -62,6 +62,7 @@ model User {
   businessProfile      BusinessProfile?
   agencyProfile        AgencyProfile?
   trustedMemberBadge   Boolean              @default(false) // Government ID verified
+  addedPlaces          Place[]
 }
 
 // ============================================
@@ -88,6 +89,7 @@ model Neighborhood {
   safetyAlerts       SafetyAlert[]
   MarketplaceListing MarketplaceListing[]
   Recommendation     Recommendation[]
+  places             Place[]
 }
 
 model UserNeighborhood {
@@ -280,8 +282,8 @@ model MarketplaceListing {
   condition         String? // "NEW", "LIKE_NEW", "GOOD", "FAIR", "POOR"
   images            String // JSON array of image URLs (up to 8, required)
   pickupLocation    String?
-  latitude          Float?    // Location for "nearby" feature
-  longitude         Float?    // Location for "nearby" feature
+  latitude          Float? // Location for "nearby" feature
+  longitude         Float? // Location for "nearby" feature
   deliveryAvailable Boolean   @default(false)
   isSold            Boolean   @default(false)
   soldAt            DateTime?
@@ -314,8 +316,8 @@ model Recommendation {
   description  String
   businessName String? // Tagged business name
   rating       Int? // 1-5 stars
-  latitude     Float?   // Location for "nearby" feature
-  longitude    Float?   // Location for "nearby" feature
+  latitude     Float? // Location for "nearby" feature
+  longitude    Float? // Location for "nearby" feature
   isAsking     Boolean  @default(false) // true if asking for recommendation
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -497,4 +499,37 @@ model OtpCode {
   expiresAt   DateTime
 
   @@index([phoneNumber, isUsed, expiresAt])
+}
+
+// ============================================
+// REAL-WORLD PLACES (Hospitals, Pharmacies, etc.)
+// ============================================
+// Valid values for category: "HOSPITAL", "PHARMACY", "CLINIC", "SCHOOL", "BANK", "ATM", "RESTAURANT", "SHOP", "GAS_STATION", "POLICE_STATION", "FIRE_STATION", "OTHER"
+
+model Place {
+  id           String   @id @default(cuid())
+  name         String
+  category     String // "HOSPITAL", "PHARMACY", "CLINIC", "SCHOOL", "BANK", "ATM", "RESTAURANT", "SHOP", "GAS_STATION", "POLICE_STATION", "FIRE_STATION", "OTHER"
+  description  String?
+  address      String?
+  latitude     Float
+  longitude    Float
+  phoneNumber  String?
+  email        String?
+  website      String?
+  openingHours String? // JSON: {"monday": "9:00-17:00", ...}
+  rating       Float? // Average rating if available
+  verified     Boolean  @default(false) // Verified by admin
+  addedById    String? // User ID who added this place
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  neighborhoodId String?
+  neighborhood   Neighborhood? @relation(fields: [neighborhoodId], references: [id])
+  addedBy        User?         @relation(fields: [addedById], references: [id])
+
+  @@index([category, latitude, longitude])
+  @@index([neighborhoodId])
+  @@index([latitude, longitude])
 }

@@ -4,9 +4,16 @@ export const postsApi = {
   /**
    * Get all posts
    */
-  async getAll(page: number = 1, limit: number = 20, neighborhoodId?: string, category?: string) {
+  async getAll(
+    page: number = 1,
+    limit: number = 20,
+    neighborhoodId?: string,
+    category?: string,
+    authorId?: string,
+    type?: string
+  ) {
     const response = await apiClient.instance.get('/api/v1/posts', {
-      params: { page, limit, neighborhoodId, category },
+      params: { page, limit, neighborhoodId, category, authorId, type },
     });
     return response.data.data;
   },

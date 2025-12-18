@@ -14,6 +14,7 @@ import { ServicesModule } from './services/services.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { UploadModule } from './upload/upload.module';
 import { NearbyModule } from './nearby/nearby.module';
+import { PlacesModule } from './places/places.module';
 import { AppController } from './app.controller';
 
 /**
@@ -37,6 +38,7 @@ import { AppController } from './app.controller';
     BookingsModule,
     UploadModule,
     NearbyModule,
+    PlacesModule,
   ],
   controllers: [AppController],
 })

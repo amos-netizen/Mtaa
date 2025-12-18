@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from '@/components/providers/providers';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -20,7 +21,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ErrorBoundary>
-          <Providers>{children}</Providers>
+          <Providers>
+            <OfflineIndicator />
+            {children}
+          </Providers>
         </ErrorBoundary>
       </body>
     </html>

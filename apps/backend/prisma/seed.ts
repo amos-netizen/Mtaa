@@ -52,6 +52,16 @@ async function main() {
     console.log(`⏭️  Test user already exists: ${testUserEmail}`);
   }
 
+  // Seed places data
+  try {
+    console.log('🏥 Seeding places data...');
+    const { execSync } = require('child_process');
+    execSync('npx ts-node prisma/seed-places.ts', { stdio: 'inherit' });
+    console.log('✅ Places data seeded');
+  } catch (error) {
+    console.log('⏭️  Places seeding skipped (may already exist)');
+  }
+
   console.log('🎉 Seeding completed!');
 }
 

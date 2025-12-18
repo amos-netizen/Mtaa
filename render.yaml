@@ -4,7 +4,7 @@ services:
     name: mtaa-backend
     env: node
     rootDir: apps/backend
-    buildCommand: cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npx prisma db push --accept-data-loss
+    buildCommand: cd ../.. && npm install && cd apps/backend && npm run prisma:generate && npm run build && npx prisma migrate deploy || npx prisma db push --accept-data-loss
     startCommand: node dist/main.js
     envVars:
       - key: NODE_ENV

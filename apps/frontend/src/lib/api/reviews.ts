@@ -1,0 +1,68 @@
+import { apiClient } from './client';
+
+export interface Review {
+  id: string;
+  rating: number; // 1-5
+  comment: string;
+  authorId: string;
+  author: {
+    id: string;
+    fullName: string;
+    username: string;
+    profileImageUrl?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const reviewsApi = {
+  /**
+   * Get reviews for a service or marketplace listing
+   */
+  async getReviews(targetId: string, targetType: 'service' | 'marketplace' | 'provider') {
+    const response = await apiClient.instance.get('/api/v1/reviews', {
+      params: { targetId, targetType },
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Create a review
+   */
+  async createReview(data: {
+    targetId: string;
+    targetType: 'service' | 'marketplace' | 'provider';
+    rating: number;
+    comment: string;
+  }) {
+    const response = await apiClient.instance.post('/api/v1/reviews', data);
+    return response.data.data;
+  },
+
+  /**
+   * Update a review
+   */
+  async updateReview(reviewId: string, data: { rating?: number; comment?: string }) {
+    const response = await apiClient.instance.put(`/api/v1/reviews/${reviewId}`, data);
+    return response.data.data;
+  },
+
+  /**
+   * Delete a review
+   */
+  async deleteReview(reviewId: string) {
+    const response = await apiClient.instance.delete(`/api/v1/reviews/${reviewId}`);
+    return response.data.data;
+  },
+
+  /**
+   * Get average rating for a target
+   */
+  async getAverageRating(targetId: string, targetType: 'service' | 'marketplace' | 'provider') {
+    const response = await apiClient.instance.get('/api/v1/reviews/average', {
+      params: { targetId, targetType },
+    });
+    return response.data.data;
+  },
+};
+

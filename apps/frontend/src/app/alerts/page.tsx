@@ -8,6 +8,9 @@ import { authApi } from '@/lib/api/auth';
 import { postsApi } from '@/lib/api/posts';
 import { neighborhoodsApi } from '@/lib/api/neighborhoods';
 import { useGeolocation, KENYA_LOCATIONS } from '@/lib/hooks/useGeolocation';
+import { useRealtimePolling } from '@/lib/hooks/useRealtimePolling';
+import { notificationService } from '@/lib/services/notificationService';
+import { AlertSkeleton, ListSkeleton } from '@/components/ui/LoadingSkeleton';
 
 // Dynamic imports for map components
 const SafetyAlertMap = dynamic(() => import('@/components/maps/SafetyAlertMap'), {
@@ -71,6 +74,9 @@ export default function AlertsPage() {
         const userData = await authApi.getMe();
         setUser(userData);
 
+        // Request notification permission for urgent alerts
+        await notificationService.requestPermission();
+
         // Fetch neighborhoods
         try {
           const neighborhoodsData = await neighborhoodsApi.getAll('Nairobi');
@@ -85,17 +91,8 @@ export default function AlertsPage() {
           console.error('Failed to fetch neighborhoods:', error);
         }
 
-        // Fetch safety alerts (posts with type SAFETY_ALERT)
-        try {
-          const postsData = await postsApi.getAll(1, 50, selectedNeighborhood || undefined, 'SAFETY_ALERT');
-          // Filter for safety alerts
-          const safetyAlerts = (postsData.posts || []).filter(
-            (post: any) => post.type === 'SAFETY_ALERT'
-          );
-          setAlerts(safetyAlerts);
-        } catch (error) {
-          console.error('Failed to fetch alerts:', error);
-        }
+        // Initial fetch
+        await fetchAlerts();
       } catch (error) {
         console.error('Failed to fetch data:', error);
         router.push('/auth/login');
@@ -105,7 +102,51 @@ export default function AlertsPage() {
     };
 
     fetchData();
-  }, [router, selectedNeighborhood]);
+  }, [router]);
+
+  const fetchAlerts = async () => {
+    try {
+      const postsData = await postsApi.getAll(1, 50, selectedNeighborhood || undefined, 'SAFETY_ALERT');
+      const safetyAlerts = (postsData.posts || []).filter(
+        (post: any) => post.type === 'SAFETY_ALERT'
+      );
+      
+      // Check for new urgent alerts and notify
+      if (alerts.length > 0 && safetyAlerts.length > 0) {
+        const existingIds = new Set(alerts.map(a => a.id));
+        const newUrgentAlerts = safetyAlerts.filter(
+          (alert: any) => !existingIds.has(alert.id) && alert.metadata?.isUrgent
+        );
+        
+        for (const alert of newUrgentAlerts) {
+          await notificationService.showUrgentAlert(
+            alert.title,
+            alert.description.substring(0, 100),
+            { alertId: alert.id, type: alert.metadata?.alertType }
+          );
+        }
+      }
+      
+      setAlerts(safetyAlerts);
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error);
+    }
+  };
+
+  // Real-time polling for alerts (every 20 seconds for urgent updates)
+  useRealtimePolling({
+    enabled: !loading && !!user,
+    interval: 20000,
+    onPoll: fetchAlerts,
+    immediate: false,
+  });
+
+  // Refetch when neighborhood changes
+  useEffect(() => {
+    if (!loading && user) {
+      fetchAlerts();
+    }
+  }, [selectedNeighborhood]);
 
   // Convert alerts to SafetyAlertMap format
   const mapAlerts = alerts.map((alert) => ({
@@ -149,11 +190,7 @@ export default function AlertsPage() {
       });
 
       // Refresh alerts
-      const postsData = await postsApi.getAll(1, 50, selectedNeighborhood || undefined);
-      const safetyAlerts = (postsData.posts || []).filter(
-        (post: any) => post.type === 'SAFETY_ALERT'
-      );
-      setAlerts(safetyAlerts);
+      await fetchAlerts();
 
       // Reset form
       setFormData({ 
@@ -174,10 +211,12 @@ export default function AlertsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading alerts...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-4">
+            <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+            <ListSkeleton count={3} />
+          </div>
         </div>
       </div>
     );
@@ -242,11 +281,21 @@ export default function AlertsPage() {
               <select
                 value={selectedNeighborhood}
                 onChange={(e) => setSelectedNeighborhood(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white bg-white text-gray-900 appearance-none cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 0.75rem center',
+                  paddingRight: '2.5rem'
+                }}
               >
-                <option value="">All Neighborhoods</option>
+                <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white">All Neighborhoods</option>
                 {neighborhoods.map((neighborhood) => (
-                  <option key={neighborhood.id} value={neighborhood.id}>
+                  <option 
+                    key={neighborhood.id} 
+                    value={neighborhood.id}
+                    className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
                     {neighborhood.name} - {neighborhood.city}
                   </option>
                 ))}
@@ -372,16 +421,37 @@ export default function AlertsPage() {
                 <select
                   value={selectedNeighborhood}
                   onChange={(e) => setSelectedNeighborhood(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white bg-white text-gray-900 appearance-none cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
                   required
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 1rem center',
+                    paddingRight: '2.5rem'
+                  }}
                 >
-                  <option value="">Select neighborhood</option>
-                  {neighborhoods.map((neighborhood) => (
-                    <option key={neighborhood.id} value={neighborhood.id}>
-                      {neighborhood.name} - {neighborhood.city}
+                  <option value="" className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white">Select neighborhood</option>
+                  {neighborhoods.length > 0 ? (
+                    neighborhoods.map((neighborhood) => (
+                      <option 
+                        key={neighborhood.id} 
+                        value={neighborhood.id}
+                        className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        {neighborhood.name} - {neighborhood.city}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled className="bg-white dark:bg-gray-700 text-gray-500">
+                      Loading neighborhoods...
                     </option>
-                  ))}
+                  )}
                 </select>
+                {neighborhoods.length === 0 && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    No neighborhoods available. Please check your connection.
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-4 pt-4">
@@ -532,4 +602,5 @@ export default function AlertsPage() {
     </div>
   );
 }
+
 

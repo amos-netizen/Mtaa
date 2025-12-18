@@ -35,4 +35,22 @@ export const usersApi = {
     });
     return response.data.data;
   },
+
+  /**
+   * Get user by ID
+   */
+  async getUserById(userId: string) {
+    const response = await apiClient.instance.get(`/api/v1/users/${userId}`);
+    return response.data.data;
+  },
+
+  /**
+   * Get user's posts
+   */
+  async getUserPosts(userId: string, page: number = 1, limit: number = 20) {
+    const response = await apiClient.instance.get(`/api/v1/posts`, {
+      params: { authorId: userId, page, limit },
+    });
+    return response.data.data;
+  },
 };

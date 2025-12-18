@@ -38,7 +38,8 @@
       },
       "eas": {
         "projectId": "your-project-id"
-      }
+      },
+      "apiUrl": "https://mtaa-16.onrender.com/api/v1"
     }
   }
 }

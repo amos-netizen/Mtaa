@@ -225,3 +225,4 @@ export const KENYA_LOCATIONS = {
 
 export const DEFAULT_LOCATION = KENYA_LOCATIONS.nairobi;
 
+

@@ -30,18 +30,6 @@ function MapLoadingSkeleton() {
   );
 }
 
-// Fallback mock data for demo when API is not available
-const MOCK_NEARBY_ITEMS = [
-  { id: '1', type: 'marketplace', title: 'iPhone 13 Pro', price: 85000, lat: -1.2900, lng: 36.8200, category: 'Electronics', image: '📱' },
-  { id: '2', type: 'marketplace', title: 'Leather Sofa', price: 45000, lat: -1.2950, lng: 36.8150, category: 'Furniture', image: '🛋️' },
-  { id: '3', type: 'service', title: 'Plumbing Services', provider: 'John Fundi', lat: -1.2880, lng: 36.8250, rating: 4.8, image: '🔧' },
-  { id: '4', type: 'service', title: 'House Cleaning', provider: 'Mary Cleaners', lat: -1.2920, lng: 36.8100, rating: 4.5, image: '🧹' },
-  { id: '5', type: 'job', title: 'Driver Needed', company: 'FastTaxi Ltd', lat: -1.2960, lng: 36.8220, salary: '35,000/month', image: '🚗' },
-  { id: '6', type: 'alert', title: 'Road Accident', description: 'Traffic jam on Ngong Road', lat: -1.2940, lng: 36.8050, urgency: 'high', image: '🚨' },
-  { id: '7', type: 'marketplace', title: 'Samsung TV 55"', price: 65000, lat: -1.2870, lng: 36.8180, category: 'Electronics', image: '📺' },
-  { id: '8', type: 'service', title: 'Electrician', provider: 'Peter Electric', lat: -1.2910, lng: 36.8280, rating: 4.9, image: '⚡' },
-];
-
 type ItemType = 'all' | 'marketplace' | 'service' | 'job' | 'alert';
 type ViewMode = 'map' | 'list' | 'split';
 
@@ -54,6 +42,7 @@ export default function NearbyPage() {
   const [apiItems, setApiItems] = useState<NearbyItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showLocationTracker, setShowLocationTracker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch nearby items from API when location changes
   const fetchNearbyItems = useCallback(async () => {
@@ -62,7 +51,9 @@ export default function NearbyPage() {
     setIsLoading(true);
     try {
       const types = selectedType === 'all' 
-        ? ['marketplace', 'alert', 'event']
+        ? ['marketplace', 'alert', 'event', 'service', 'place']
+        : selectedType === 'service'
+        ? ['service', 'place'] // Include both user services and real-world places
         : [selectedType];
       
       const response = await nearbyApi.getAll({
@@ -76,7 +67,6 @@ export default function NearbyPage() {
       setApiItems(response.items);
     } catch (error) {
       console.error('Failed to fetch nearby items:', error);
-      // Fall back to mock data on error
       setApiItems([]);
     } finally {
       setIsLoading(false);
@@ -87,31 +77,45 @@ export default function NearbyPage() {
     fetchNearbyItems();
   }, [fetchNearbyItems]);
 
-  // Filter and sort items by distance - use API data if available, otherwise mock data
+  // Filter and sort items by distance and search query
   const nearbyItems = useMemo(() => {
-    // If we have API items, use those
-    if (apiItems.length > 0) {
-      return apiItems.map(item => ({
-        ...item,
-        image: item.type === 'marketplace' ? '🛒' :
-               item.type === 'alert' ? '🚨' :
-               item.type === 'event' ? '📅' :
-               item.type === 'service' ? '🔧' : '📍',
-      }));
+    let filtered = apiItems;
+
+    // Apply search filter if query exists
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((item: any) => {
+        const titleMatch = item.title?.toLowerCase().includes(query);
+        const descMatch = item.description?.toLowerCase().includes(query);
+        const categoryMatch = item.data?.category?.toLowerCase().includes(query);
+        const authorMatch = item.data?.author?.fullName?.toLowerCase().includes(query);
+        const addressMatch = item.data?.address?.toLowerCase().includes(query);
+        const placeCategoryMatch = item.type === 'place' && (
+          item.data?.category === 'HOSPITAL' && (query.includes('hospital') || query.includes('hospital') || query.includes('clinic')) ||
+          item.data?.category === 'PHARMACY' && (query.includes('pharmacy') || query.includes('drug') || query.includes('medicine')) ||
+          item.data?.category === 'CLINIC' && (query.includes('clinic') || query.includes('hospital') || query.includes('doctor'))
+        );
+        return titleMatch || descMatch || categoryMatch || authorMatch || addressMatch || placeCategoryMatch;
+      });
     }
 
-    // Fall back to mock data
-    if (!latitude || !longitude) return MOCK_NEARBY_ITEMS;
-
-    return MOCK_NEARBY_ITEMS
-      .filter(item => selectedType === 'all' || item.type === selectedType)
-      .map(item => ({
-        ...item,
-        distance: calculateDistance(latitude, longitude, item.lat, item.lng),
-      }))
-      .filter(item => item.distance <= radiusKm)
-      .sort((a, b) => a.distance - b.distance);
-  }, [apiItems, latitude, longitude, selectedType, radiusKm]);
+    return filtered.map(item => ({
+      ...item,
+      image: item.type === 'marketplace' ? '🛒' :
+             item.type === 'alert' ? '🚨' :
+             item.type === 'event' ? '📅' :
+             item.type === 'service' ? '🔧' :
+             item.type === 'place' ? (
+               item.data?.category === 'HOSPITAL' ? '🏥' :
+               item.data?.category === 'PHARMACY' ? '💊' :
+               item.data?.category === 'CLINIC' ? '🏥' :
+               item.data?.category === 'BANK' ? '🏦' :
+               item.data?.category === 'POLICE_STATION' ? '🚔' :
+               item.data?.category === 'FIRE_STATION' ? '🚒' :
+               '📍'
+             ) : '📍',
+    }));
+  }, [apiItems, searchQuery]);
 
   // Convert items to map markers
   const mapMarkers = useMemo(() => {
@@ -123,7 +127,7 @@ export default function NearbyPage() {
       description: item.type === 'marketplace' 
         ? `KSh ${(item.price || item.data?.price)?.toLocaleString() || 'N/A'}`
         : item.type === 'service'
-        ? `⭐ ${item.rating || item.data?.rating || 'N/A'}`
+        ? `${item.data?.author?.fullName || 'Service'} • ${item.data?.category || 'Service'}`
         : item.type === 'job'
         ? item.salary || item.data?.salary || 'N/A'
         : item.description || item.data?.description || '',
@@ -139,6 +143,26 @@ export default function NearbyPage() {
     { value: 'job', label: 'Jobs', icon: '💼', color: 'bg-yellow-500' },
     { value: 'alert', label: 'Alerts', icon: '🚨', color: 'bg-red-500' },
   ];
+
+  const getItemUrl = (item: any) => {
+    switch (item.type) {
+      case 'marketplace':
+        return `/marketplace/${item.id}`;
+      case 'service':
+        return `/services`;
+      case 'place':
+        // For places, show details in a modal or link to map
+        return `#place-${item.id}`;
+      case 'job':
+        return `/jobs/${item.id}`;
+      case 'alert':
+        return `/alerts`;
+      case 'event':
+        return `/events/${item.id}`;
+      default:
+        return '/dashboard';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -203,6 +227,35 @@ export default function NearbyPage() {
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mt-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search services, items, jobs..."
+                className="w-full px-4 py-2 pl-10 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
 
@@ -321,7 +374,8 @@ export default function NearbyPage() {
                 {/* Results count */}
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {nearbyItems.length} items found
+                    {nearbyItems.length} {searchQuery ? 'matching' : ''} items found
+                    {searchQuery && <span className="text-sm font-normal text-gray-500"> for "{searchQuery}"</span>}
                   </h2>
                 </div>
 
@@ -330,21 +384,23 @@ export default function NearbyPage() {
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
                     <span className="text-4xl">🔍</span>
                     <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                      No items found nearby
+                      {searchQuery ? 'No matching items found' : 'No items found nearby'}
                     </h3>
                     <p className="mt-2 text-gray-500 dark:text-gray-400">
-                      Try increasing the search radius or changing filters
+                      {searchQuery 
+                        ? 'Try different search terms or clear the search'
+                        : 'Try increasing the search radius or changing filters'}
                     </p>
                   </div>
                 ) : (
                   <div className={`grid gap-3 ${viewMode === 'list' ? 'sm:grid-cols-2 lg:grid-cols-3' : ''}`}>
                     {nearbyItems.map((item: any) => (
-                      <div
+                      <Link
                         key={item.id}
-                        onClick={() => setSelectedItem(item.id)}
-                        className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer border-2 ${
+                        href={getItemUrl(item)}
+                        className={`block bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer border-2 ${
                           selectedItem === item.id
-                            ? 'border-primary-500'
+                            ? 'border-blue-500'
                             : 'border-transparent'
                         }`}
                       >
@@ -369,15 +425,40 @@ export default function NearbyPage() {
                             <h3 className="mt-1 font-semibold text-gray-900 dark:text-white truncate">
                               {item.title}
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              {item.type === 'marketplace' && `KSh ${item.price?.toLocaleString()}`}
-                              {item.type === 'service' && `${item.provider} • ⭐ ${item.rating}`}
-                              {item.type === 'job' && `${item.company} • ${item.salary}`}
-                              {item.type === 'alert' && item.description}
+                            <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                              {item.type === 'marketplace' && `KSh ${item.price?.toLocaleString() || item.data?.price?.toLocaleString() || 'N/A'}`}
+                              {item.type === 'service' && (
+                                <>
+                                  {item.data?.author?.fullName || 'Service Provider'}
+                                  {item.data?.category && ` • ${item.data.category}`}
+                                  {item.data?.author?.phoneNumber && (
+                                    <span className="block text-xs text-gray-500">📞 {item.data.author.phoneNumber}</span>
+                                  )}
+                                </>
+                              )}
+                              {item.type === 'place' && (
+                                <>
+                                  {item.data?.address && <span className="block">{item.data.address}</span>}
+                                  {item.data?.phoneNumber && <span className="block text-xs text-gray-500">📞 {item.data.phoneNumber}</span>}
+                                  {item.data?.rating && <span className="block text-xs text-yellow-600">⭐ {item.data.rating.toFixed(1)}</span>}
+                                </>
+                              )}
+                              {item.type === 'job' && `${item.company || item.data?.company || 'N/A'} • ${item.salary || item.data?.salary || 'N/A'}`}
+                              {item.type === 'alert' && (item.description || item.data?.description || '')}
+                              {item.type === 'event' && item.data?.location && `📍 ${item.data.location}`}
                             </p>
+                            {item.type === 'service' && item.data?.author && (
+                              <Link
+                                href={`/users/${item.data.author.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                              >
+                                View Provider Profile →
+                              </Link>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -391,7 +472,7 @@ export default function NearbyPage() {
       <div className="fixed bottom-6 right-6 lg:hidden">
         <button
           onClick={requestLocation}
-          className="w-14 h-14 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 flex items-center justify-center transition"
+          className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 flex items-center justify-center transition"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -402,4 +483,3 @@ export default function NearbyPage() {
     </div>
   );
 }
-

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 import { notificationsApi } from '@/lib/api/notifications';
+import { useRealtimePolling } from '@/lib/hooks/useRealtimePolling';
+import { notificationService } from '@/lib/services/notificationService';
+import { DashboardSkeleton } from '@/components/ui/LoadingSkeleton';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -12,6 +15,45 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [lastNotificationId, setLastNotificationId] = useState<string | null>(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const notificationsData = await notificationsApi.getAll(1, 5);
+      const newNotifications = notificationsData.notifications || [];
+      
+      // Check for new notifications and show browser notification
+      if (newNotifications.length > 0 && lastNotificationId) {
+        const newestNotification = newNotifications[0];
+        if (newestNotification.id !== lastNotificationId && !newestNotification.isRead) {
+          await notificationService.show({
+            title: newestNotification.title,
+            body: newestNotification.body,
+            icon: '/favicon.ico',
+            tag: `notification-${newestNotification.id}`,
+          });
+        }
+      }
+      
+      if (newNotifications.length > 0) {
+        setLastNotificationId(newNotifications[0].id);
+      }
+      
+      setNotifications(newNotifications);
+      const count = await notificationsApi.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  // Real-time polling for notifications (every 30 seconds)
+  useRealtimePolling({
+    enabled: !loading && !!user,
+    interval: 30000,
+    onPoll: fetchNotifications,
+    immediate: false,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,14 +67,11 @@ export default function DashboardPage() {
         const userData = await authApi.getMe();
         setUser(userData);
 
-        try {
-          const notificationsData = await notificationsApi.getAll(1, 5);
-          setNotifications(notificationsData.notifications || []);
-          const count = await notificationsApi.getUnreadCount();
-          setUnreadCount(count);
-        } catch (error) {
-          console.error('Failed to fetch notifications:', error);
-        }
+        // Request notification permission
+        await notificationService.requestPermission();
+
+        // Initial fetch
+        await fetchNotifications();
       } catch (error) {
         console.error('Failed to fetch user:', error);
         localStorage.removeItem('accessToken');
@@ -65,10 +104,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <DashboardSkeleton />
         </div>
       </div>
     );
@@ -146,6 +184,22 @@ export default function DashboardPage() {
       href: '/dashboard/notifications',
       color: 'bg-orange-500 hover:bg-orange-600',
       actions: ['Mark as Read', 'Open Notification']
+    },
+    {
+      icon: '📅',
+      title: 'Events',
+      description: 'Create and join community events',
+      href: '/events',
+      color: 'bg-purple-500 hover:bg-purple-600',
+      actions: ['Create Event', 'RSVP', 'View Events']
+    },
+    {
+      icon: '🔍',
+      title: 'Search',
+      description: 'Search across all content',
+      href: '/search',
+      color: 'bg-indigo-500 hover:bg-indigo-600',
+      actions: ['Search Posts', 'Search Marketplace', 'Search Jobs']
     },
     {
       icon: '💬',

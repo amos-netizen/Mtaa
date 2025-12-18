@@ -457,9 +457,9 @@ export default function RegisterPage() {
           {/* Terms */}
           <p className="text-center text-xs text-gray-500 dark:text-gray-400">
             By creating an account, you agree to our{' '}
-            <Link href="/terms" className="text-primary-600 hover:underline">Terms of Service</Link>
+            <Link href="/legal" className="text-primary-600 hover:underline">Terms of Service</Link>
             {' '}and{' '}
-            <Link href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</Link>
+            <Link href="/legal" className="text-primary-600 hover:underline">Privacy Policy</Link>
           </p>
         </form>
 

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 import { postsApi } from '@/lib/api/posts';
 import { neighborhoodsApi } from '@/lib/api/neighborhoods';
+import { useRealtimePolling } from '@/lib/hooks/useRealtimePolling';
+import { ListSkeleton } from '@/components/ui/LoadingSkeleton';
 
 // Example neighborhoods for Nairobi
 const EXAMPLE_NEIGHBORHOODS = [
@@ -28,6 +30,23 @@ export default function CommunityPage() {
     title: '',
     description: '',
     category: 'DISCUSSION',
+  });
+
+  const fetchPosts = async () => {
+    try {
+      const postsData = await postsApi.getAll(1, 20, selectedNeighborhood || undefined);
+      setPosts(postsData.posts || []);
+    } catch (error) {
+      console.error('Failed to fetch posts:', error);
+    }
+  };
+
+  // Real-time polling for community posts (every 30 seconds)
+  useRealtimePolling({
+    enabled: !loading && !!user,
+    interval: 30000,
+    onPoll: fetchPosts,
+    immediate: false,
   });
 
   useEffect(() => {
@@ -56,9 +75,8 @@ export default function CommunityPage() {
           console.error('Failed to fetch neighborhoods:', error);
         }
 
-        // Fetch community posts
-        const postsData = await postsApi.getAll(1, 20, selectedNeighborhood || undefined);
-        setPosts(postsData.posts || []);
+        // Initial fetch
+        await fetchPosts();
       } catch (error) {
         console.error('Failed to fetch data:', error);
         router.push('/auth/login');
@@ -68,7 +86,14 @@ export default function CommunityPage() {
     };
 
     fetchData();
-  }, [router, selectedNeighborhood]);
+  }, [router]);
+
+  // Refetch when neighborhood changes
+  useEffect(() => {
+    if (!loading && user) {
+      fetchPosts();
+    }
+  }, [selectedNeighborhood]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,8 +119,7 @@ export default function CommunityPage() {
       });
 
       // Refresh posts
-      const postsData = await postsApi.getAll(1, 20, selectedNeighborhood || undefined);
-      setPosts(postsData.posts || []);
+      await fetchPosts();
 
       // Reset form
       setFormData({

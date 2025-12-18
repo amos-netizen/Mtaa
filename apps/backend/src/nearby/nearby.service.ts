@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlacesService } from '../places/places.service';
 
 // Haversine formula to calculate distance between two points
 function calculateDistance(
@@ -46,7 +47,7 @@ function getBoundingBox(
 
 export interface NearbyItem {
   id: string;
-  type: 'marketplace' | 'service' | 'alert' | 'event' | 'job';
+  type: 'marketplace' | 'service' | 'alert' | 'event' | 'job' | 'place';
   title: string;
   description: string;
   lat: number;
@@ -66,7 +67,10 @@ export interface NearbyQueryParams {
 
 @Injectable()
 export class NearbyService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private placesService: PlacesService,
+  ) {}
 
   async findNearby(params: NearbyQueryParams): Promise<{
     items: NearbyItem[];
@@ -231,6 +235,121 @@ export class NearbyService {
       }
     }
 
+    // Fetch services (Posts with type SERVICE)
+    if (types.includes('service')) {
+      const services = await this.prisma.post.findMany({
+        where: {
+          type: 'SERVICE',
+        },
+        include: {
+          author: {
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              profileImageUrl: true,
+              latitude: true,
+              longitude: true,
+              phoneNumber: true,
+            },
+          },
+          neighborhood: {
+            select: {
+              id: true,
+              name: true,
+              centerLatitude: true,
+              centerLongitude: true,
+            },
+          },
+        },
+      });
+
+      for (const service of services) {
+        // Use author's location if available, otherwise use neighborhood center
+        let serviceLat: number | null = null;
+        let serviceLng: number | null = null;
+
+        if (service.author.latitude && service.author.longitude) {
+          serviceLat = service.author.latitude;
+          serviceLng = service.author.longitude;
+        } else if (service.neighborhood.centerLatitude && service.neighborhood.centerLongitude) {
+          serviceLat = service.neighborhood.centerLatitude;
+          serviceLng = service.neighborhood.centerLongitude;
+        }
+
+        if (serviceLat && serviceLng) {
+          // Check if within bounding box first (quick filter)
+          if (
+            serviceLat >= bbox.minLat &&
+            serviceLat <= bbox.maxLat &&
+            serviceLng >= bbox.minLon &&
+            serviceLng <= bbox.maxLon
+          ) {
+            const distance = calculateDistance(
+              latitude,
+              longitude,
+              serviceLat,
+              serviceLng,
+            );
+            if (distance <= radiusKm) {
+              items.push({
+                id: service.id,
+                type: 'service',
+                title: service.title,
+                description: service.description,
+                lat: serviceLat,
+                lng: serviceLng,
+                distance,
+                data: {
+                  category: service.category,
+                  author: service.author,
+                  neighborhood: service.neighborhood,
+                  images: service.images ? JSON.parse(service.images) : [],
+                },
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Fetch real-world places (hospitals, pharmacies, etc.)
+    if (types.includes('service') || types.includes('place')) {
+      try {
+        const placesResult = await this.placesService.findNearby({
+          latitude,
+          longitude,
+          radiusKm,
+          limit: 50,
+        });
+
+        for (const place of placesResult.places) {
+          items.push({
+            id: place.id,
+            type: 'place',
+            title: place.name,
+            description: place.description || place.address || '',
+            lat: place.latitude,
+            lng: place.longitude,
+            distance: place.distance,
+            data: {
+              category: place.category,
+              address: place.address,
+              phoneNumber: place.phoneNumber,
+              email: place.email,
+              website: place.website,
+              rating: place.rating,
+              verified: place.verified,
+              neighborhood: place.neighborhood,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching places:', error);
+        // Continue without places if there's an error
+      }
+    }
+
     // Sort by distance
     items.sort((a, b) => a.distance - b.distance);
 
@@ -364,4 +483,5 @@ export class NearbyService {
       .sort((a, b) => a.distance - b.distance);
   }
 }
+
 

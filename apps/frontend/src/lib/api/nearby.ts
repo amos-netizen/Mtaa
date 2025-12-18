@@ -2,7 +2,7 @@ import { apiClient } from './client';
 
 export interface NearbyItem {
   id: string;
-  type: 'marketplace' | 'service' | 'alert' | 'event' | 'job';
+  type: 'marketplace' | 'service' | 'alert' | 'event' | 'job' | 'place';
   title: string;
   description: string;
   lat: number;
