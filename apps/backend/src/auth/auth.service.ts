@@ -98,7 +98,7 @@ export class AuthService {
           where: { id: user.id },
           data: {
             emailVerificationToken: verificationToken,
-            emailVerificationExpires: expiresAt,
+            emailVerificationExpiresAt: expiresAt,
           },
         });
 
