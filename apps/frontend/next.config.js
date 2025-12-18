@@ -8,7 +8,11 @@ const nextConfig = {
     config.resolve.alias['@'] = path.resolve(__dirname, 'src');
     return config;
   },
-  turbopack: {} // explicitly add this to avoid the Turbopack error
+  turbopack: {}, // explicitly add this to avoid the Turbopack error
+  // Disable static optimization for search page
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
 }
 
 module.exports = nextConfig
