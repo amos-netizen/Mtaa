@@ -5,7 +5,7 @@ export const jobsApi = {
    * Get all job listings
    */
   async getAll(page: number = 1, limit: number = 20, neighborhoodId?: string, search?: string) {
-    const response = await apiClient.instance.get('/api/v1/jobs', {
+    const response = await apiClient.instance.get('/jobs', {
       params: { page, limit, neighborhoodId, search },
     });
     return response.data.data;
@@ -15,7 +15,7 @@ export const jobsApi = {
    * Get a single job
    */
   async getOne(jobId: string) {
-    const response = await apiClient.instance.get(`/api/v1/jobs/${jobId}`);
+    const response = await apiClient.instance.get(`/jobs/${jobId}`);
     return response.data.data;
   },
 
@@ -31,7 +31,7 @@ export const jobsApi = {
     salary?: string;
     jobType?: string;
   }) {
-    const response = await apiClient.instance.post('/api/v1/jobs', data);
+    const response = await apiClient.instance.post('/jobs', data);
     return response.data.data;
   },
 
@@ -44,7 +44,7 @@ export const jobsApi = {
     category?: string;
     images?: string[];
   }) {
-    const response = await apiClient.instance.put(`/api/v1/jobs/${jobId}`, data);
+    const response = await apiClient.instance.put(`/jobs/${jobId}`, data);
     return response.data.data;
   },
 
@@ -52,7 +52,7 @@ export const jobsApi = {
    * Delete a job posting
    */
   async delete(jobId: string) {
-    const response = await apiClient.instance.delete(`/api/v1/jobs/${jobId}`);
+    const response = await apiClient.instance.delete(`/jobs/${jobId}`);
     return response.data.data;
   },
 
@@ -60,7 +60,7 @@ export const jobsApi = {
    * Apply for a job
    */
   async apply(jobId: string, data: { coverLetter: string; resumeUrl?: string }) {
-    const response = await apiClient.instance.post(`/api/v1/jobs/${jobId}/apply`, data);
+    const response = await apiClient.instance.post(`/jobs/${jobId}/apply`, data);
     return response.data.data;
   },
 };

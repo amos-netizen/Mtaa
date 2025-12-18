@@ -8,7 +8,7 @@ export const uploadApi = {
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await apiClient.instance.post('/api/v1/upload/image', formData, {
+    const response = await apiClient.instance.post('/upload/image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -26,7 +26,7 @@ export const uploadApi = {
       formData.append('images', file);
     });
 
-    const response = await apiClient.instance.post('/api/v1/upload/images', formData, {
+    const response = await apiClient.instance.post('/upload/images', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

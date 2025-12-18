@@ -105,7 +105,7 @@ export const nearbyApi = {
     if (params.limit) queryParams.set('limit', params.limit.toString());
     if (params.offset) queryParams.set('offset', params.offset.toString());
 
-    const response = await apiClient.instance.get<{ data: NearbyResponse }>(`/api/v1/nearby?${queryParams.toString()}`);
+    const response = await apiClient.instance.get<{ data: NearbyResponse }>(`/nearby?${queryParams.toString()}`);
     return response.data.data;
   },
 
@@ -118,7 +118,7 @@ export const nearbyApi = {
     radius: number = 5
   ): Promise<NearbyAlert[]> {
     const response = await apiClient.instance.get<{ data: NearbyAlert[] }>(
-      `/api/v1/nearby/alerts?latitude=${latitude}&longitude=${longitude}&radius=${radius}`
+      `/nearby/alerts?latitude=${latitude}&longitude=${longitude}&radius=${radius}`
     );
     return response.data.data;
   },
@@ -140,7 +140,7 @@ export const nearbyApi = {
     if (category) params.set('category', category);
 
     const response = await apiClient.instance.get<{ data: NearbyMarketplaceListing[] }>(
-      `/api/v1/nearby/marketplace?${params.toString()}`
+      `/nearby/marketplace?${params.toString()}`
     );
     return response.data.data;
   },
@@ -154,7 +154,7 @@ export const nearbyApi = {
     radius: number = 10
   ): Promise<NearbyNeighborhood[]> {
     const response = await apiClient.instance.get<{ data: NearbyNeighborhood[] }>(
-      `/api/v1/nearby/neighborhoods?latitude=${latitude}&longitude=${longitude}&radius=${radius}`
+      `/nearby/neighborhoods?latitude=${latitude}&longitude=${longitude}&radius=${radius}`
     );
     return response.data.data;
   },
@@ -168,7 +168,7 @@ export const nearbyApi = {
     longitude: number;
     locationVerified: boolean;
   }> {
-    const response = await apiClient.instance.post<{ data: any }>('/api/v1/nearby/location', {
+    const response = await apiClient.instance.post<{ data: any }>('/nearby/location', {
       latitude,
       longitude,
     });

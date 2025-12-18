@@ -56,7 +56,7 @@ export const eventsApi = {
     page?: number;
     limit?: number;
   }) {
-    const response = await apiClient.instance.get('/api/v1/posts', {
+    const response = await apiClient.instance.get('/posts', {
       params: {
         type: 'EVENT',
         ...params,
@@ -82,7 +82,7 @@ export const eventsApi = {
    */
   async getOne(eventId: string) {
     // Events are stored as posts with type EVENT
-    const response = await apiClient.instance.get(`/api/v1/posts/${eventId}`);
+    const response = await apiClient.instance.get(`/posts/${eventId}`);
     const post = response.data.data;
     if (post.type !== 'EVENT' || !post.event) {
       throw new Error('Event not found');
@@ -114,7 +114,7 @@ export const eventsApi = {
     recurrenceRule?: string;
   }) {
     // Create as a post with type EVENT
-    const response = await apiClient.instance.post('/api/v1/posts', {
+    const response = await apiClient.instance.post('/posts', {
       title: data.title,
       description: data.description,
       neighborhoodId: data.neighborhoodId,
@@ -139,7 +139,7 @@ export const eventsApi = {
   async rsvp(eventId: string, status: 'GOING' | 'INTERESTED' | 'CANT_GO') {
     // RSVP would need to be implemented via comments or a separate endpoint
     // For now, we'll use a comment-based approach or create a dedicated endpoint
-    const response = await apiClient.instance.post(`/api/v1/posts/${eventId}/comments`, {
+    const response = await apiClient.instance.post(`/posts/${eventId}/comments`, {
       content: `RSVP: ${status}`,
       metadata: { rsvpStatus: status },
     });
@@ -150,7 +150,7 @@ export const eventsApi = {
    * Update an event
    */
   async update(eventId: string, data: Partial<Event>) {
-    const response = await apiClient.instance.put(`/api/v1/posts/${eventId}`, {
+    const response = await apiClient.instance.put(`/posts/${eventId}`, {
       title: data.title,
       description: data.description,
       metadata: {
@@ -169,7 +169,7 @@ export const eventsApi = {
    * Delete an event
    */
   async delete(eventId: string) {
-    const response = await apiClient.instance.delete(`/api/v1/posts/${eventId}`);
+    const response = await apiClient.instance.delete(`/posts/${eventId}`);
     return response.data.data;
   },
 };

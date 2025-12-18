@@ -5,7 +5,7 @@ export const servicesApi = {
    * Get all service listings
    */
   async getAll(page: number = 1, limit: number = 20, neighborhoodId?: string, search?: string, category?: string) {
-    const response = await apiClient.instance.get('/api/v1/services', {
+    const response = await apiClient.instance.get('/services', {
       params: { page, limit, neighborhoodId, search, category },
     });
     return response.data.data;
@@ -15,7 +15,7 @@ export const servicesApi = {
    * Get a single service
    */
   async getOne(serviceId: string) {
-    const response = await apiClient.instance.get(`/api/v1/services/${serviceId}`);
+    const response = await apiClient.instance.get(`/services/${serviceId}`);
     return response.data.data;
   },
 
@@ -31,7 +31,7 @@ export const servicesApi = {
     price?: number;
     serviceType?: string;
   }) {
-    const response = await apiClient.instance.post('/api/v1/services', data);
+    const response = await apiClient.instance.post('/services', data);
     return response.data.data;
   },
 
@@ -43,7 +43,7 @@ export const servicesApi = {
     preferredTime?: string;
     message: string;
   }) {
-    const response = await apiClient.instance.post(`/api/v1/services/${serviceId}/book`, data);
+    const response = await apiClient.instance.post(`/services/${serviceId}/book`, data);
     return response.data.data;
   },
 };

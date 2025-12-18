@@ -5,7 +5,7 @@ export const bookingsApi = {
    * Get all bookings for current user
    */
   async getAll(page: number = 1, limit: number = 20) {
-    const response = await apiClient.instance.get('/api/v1/bookings', {
+    const response = await apiClient.instance.get('/bookings', {
       params: { page, limit },
     });
     return response.data.data;
@@ -15,7 +15,7 @@ export const bookingsApi = {
    * Get a single booking
    */
   async getOne(bookingId: string) {
-    const response = await apiClient.instance.get(`/api/v1/bookings/${bookingId}`);
+    const response = await apiClient.instance.get(`/bookings/${bookingId}`);
     return response.data.data;
   },
 
@@ -27,7 +27,7 @@ export const bookingsApi = {
     preferredTime?: string;
     message?: string;
   }) {
-    const response = await apiClient.instance.put(`/api/v1/bookings/${bookingId}`, data);
+    const response = await apiClient.instance.put(`/bookings/${bookingId}`, data);
     return response.data.data;
   },
 
@@ -35,7 +35,7 @@ export const bookingsApi = {
    * Cancel a booking
    */
   async cancel(bookingId: string) {
-    const response = await apiClient.instance.delete(`/api/v1/bookings/${bookingId}`);
+    const response = await apiClient.instance.delete(`/bookings/${bookingId}`);
     return response.data.data;
   },
 };

@@ -11,7 +11,7 @@ export const marketplaceApi = {
     page?: number;
     limit?: number;
   }) {
-    const response = await apiClient.instance.get('/api/v1/marketplace/listings', {
+    const response = await apiClient.instance.get('/marketplace/listings', {
       params,
     });
     return response.data.data;
@@ -21,7 +21,7 @@ export const marketplaceApi = {
    * Get single listing
    */
   async getListing(id: string) {
-    const response = await apiClient.instance.get(`/api/v1/marketplace/listings/${id}`);
+    const response = await apiClient.instance.get(`/marketplace/listings/${id}`);
     return response.data.data;
   },
 
@@ -40,7 +40,7 @@ export const marketplaceApi = {
     pickupLocation?: string;
     deliveryAvailable?: boolean;
   }) {
-    const response = await apiClient.instance.post('/api/v1/marketplace/listings', data);
+    const response = await apiClient.instance.post('/marketplace/listings', data);
     return response.data.data;
   },
 
@@ -57,7 +57,7 @@ export const marketplaceApi = {
     pickupLocation?: string;
     deliveryAvailable?: boolean;
   }>) {
-    const response = await apiClient.instance.put(`/api/v1/marketplace/listings/${id}`, data);
+    const response = await apiClient.instance.put(`/marketplace/listings/${id}`, data);
     return response.data.data;
   },
 
@@ -65,7 +65,7 @@ export const marketplaceApi = {
    * Mark listing as sold
    */
   async markAsSold(id: string) {
-    const response = await apiClient.instance.post(`/api/v1/marketplace/listings/${id}/mark-sold`);
+    const response = await apiClient.instance.post(`/marketplace/listings/${id}/mark-sold`);
     return response.data.data;
   },
 
@@ -73,7 +73,7 @@ export const marketplaceApi = {
    * Delete listing
    */
   async deleteListing(id: string) {
-    const response = await apiClient.instance.delete(`/api/v1/marketplace/listings/${id}`);
+    const response = await apiClient.instance.delete(`/marketplace/listings/${id}`);
     return response.data.data;
   },
 };

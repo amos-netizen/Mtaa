@@ -20,7 +20,7 @@ export const reviewsApi = {
    * Get reviews for a service or marketplace listing
    */
   async getReviews(targetId: string, targetType: 'MARKETPLACE' | 'SERVICE' | 'PROVIDER' | 'JOB_EMPLOYER') {
-    const response = await apiClient.instance.get('/api/v1/reviews', {
+    const response = await apiClient.instance.get('/reviews', {
       params: { targetId, targetType },
     });
     return response.data.data;
@@ -35,7 +35,7 @@ export const reviewsApi = {
     rating: number;
     comment?: string;
   }) {
-    const response = await apiClient.instance.post('/api/v1/reviews', data);
+    const response = await apiClient.instance.post('/reviews', data);
     return response.data.data;
   },
 
@@ -43,7 +43,7 @@ export const reviewsApi = {
    * Update a review
    */
   async updateReview(reviewId: string, data: { rating?: number; comment?: string }) {
-    const response = await apiClient.instance.put(`/api/v1/reviews/${reviewId}`, data);
+    const response = await apiClient.instance.put(`/reviews/${reviewId}`, data);
     return response.data.data;
   },
 
@@ -51,7 +51,7 @@ export const reviewsApi = {
    * Delete a review
    */
   async deleteReview(reviewId: string) {
-    const response = await apiClient.instance.delete(`/api/v1/reviews/${reviewId}`);
+    const response = await apiClient.instance.delete(`/reviews/${reviewId}`);
     return response.data.data;
   },
 
@@ -59,7 +59,7 @@ export const reviewsApi = {
    * Get average rating for a target
    */
   async getAverageRating(targetId: string, targetType: 'MARKETPLACE' | 'SERVICE' | 'PROVIDER' | 'JOB_EMPLOYER') {
-    const response = await apiClient.instance.get('/api/v1/reviews/average', {
+    const response = await apiClient.instance.get('/reviews/average', {
       params: { targetId, targetType },
     });
     return response.data.data;

@@ -7,7 +7,7 @@ export const authApi = {
    */
   async register(data: RegisterRequest) {
     try {
-      const response = await apiClient.instance.post('/api/v1/auth/register', data);
+      const response = await apiClient.instance.post('/auth/register', data);
       console.log('Raw API response:', response);
       console.log('Response data:', response.data);
       console.log('Response data.data:', response.data.data);
@@ -23,7 +23,7 @@ export const authApi = {
    * Verify OTP and get tokens
    */
   async verifyOtp(phoneNumber: string, otpCode: string): Promise<AuthTokens & { user: any }> {
-    const response = await apiClient.instance.post('/api/v1/auth/verify-otp', {
+    const response = await apiClient.instance.post('/auth/verify-otp', {
       phoneNumber,
       otpCode,
     });
@@ -34,7 +34,7 @@ export const authApi = {
    * Request login OTP
    */
   async login(phoneNumber: string) {
-    const response = await apiClient.instance.post('/api/v1/auth/login/otp', { phoneNumber });
+    const response = await apiClient.instance.post('/auth/login/otp', { phoneNumber });
     return response.data.data;
   },
 
@@ -50,7 +50,7 @@ export const authApi = {
       ? { email: emailOrPhone, password }
       : { phoneNumber: emailOrPhone, password };
     
-    const response = await apiClient.instance.post('/api/v1/auth/login', loginData);
+    const response = await apiClient.instance.post('/auth/login', loginData);
     return response.data.data;
   },
 
@@ -58,7 +58,7 @@ export const authApi = {
    * Get current user profile
    */
   async getMe() {
-    const response = await apiClient.instance.get('/api/v1/auth/me');
+    const response = await apiClient.instance.get('/auth/me');
     return response.data.data;
   },
 
@@ -66,7 +66,7 @@ export const authApi = {
    * Refresh access token
    */
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
-    const response = await apiClient.instance.post('/api/v1/auth/refresh-token', {
+    const response = await apiClient.instance.post('/auth/refresh-token', {
       refreshToken,
     });
     return response.data.data;
@@ -77,7 +77,7 @@ export const authApi = {
    */
   async logout() {
     try {
-      await apiClient.instance.delete('/api/v1/auth/logout');
+      await apiClient.instance.delete('/auth/logout');
     } catch (error) {
       // Even if logout fails on server, clear local tokens
       console.error('Logout error:', error);

@@ -5,7 +5,7 @@ export const usersApi = {
    * Get current user profile
    */
   async getMe() {
-    const response = await apiClient.instance.get('/api/v1/users/me');
+    const response = await apiClient.instance.get('/users/me');
     return response.data.data;
   },
 
@@ -21,7 +21,7 @@ export const usersApi = {
     languagePreference?: 'en' | 'sw';
     mpesaNumber?: string;
   }) {
-    const response = await apiClient.instance.put('/api/v1/users/me', data);
+    const response = await apiClient.instance.put('/users/me', data);
     return response.data.data;
   },
 
@@ -29,7 +29,7 @@ export const usersApi = {
    * Update password
    */
   async updatePassword(oldPassword: string, newPassword: string) {
-    const response = await apiClient.instance.put('/api/v1/users/me/password', {
+    const response = await apiClient.instance.put('/users/me/password', {
       oldPassword,
       newPassword,
     });
@@ -40,7 +40,7 @@ export const usersApi = {
    * Get user by ID
    */
   async getUserById(userId: string) {
-    const response = await apiClient.instance.get(`/api/v1/users/${userId}`);
+    const response = await apiClient.instance.get(`/users/${userId}`);
     return response.data.data;
   },
 
@@ -48,7 +48,7 @@ export const usersApi = {
    * Get user's posts
    */
   async getUserPosts(userId: string, page: number = 1, limit: number = 20) {
-    const response = await apiClient.instance.get(`/api/v1/posts`, {
+    const response = await apiClient.instance.get(`/posts`, {
       params: { authorId: userId, page, limit },
     });
     return response.data.data;

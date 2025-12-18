@@ -12,7 +12,7 @@ export const postsApi = {
     authorId?: string,
     type?: string
   ) {
-    const response = await apiClient.instance.get('/api/v1/posts', {
+    const response = await apiClient.instance.get('/posts', {
       params: { page, limit, neighborhoodId, category, authorId, type },
     });
     return response.data.data;
@@ -22,7 +22,7 @@ export const postsApi = {
    * Get a single post
    */
   async getOne(postId: string) {
-    const response = await apiClient.instance.get(`/api/v1/posts/${postId}`);
+    const response = await apiClient.instance.get(`/posts/${postId}`);
     return response.data.data;
   },
 
@@ -45,7 +45,7 @@ export const postsApi = {
       location?: { lat: number; lng: number } | null;
     };
   }) {
-    const response = await apiClient.instance.post('/api/v1/posts', data);
+    const response = await apiClient.instance.post('/posts', data);
     return response.data.data;
   },
 
@@ -59,7 +59,7 @@ export const postsApi = {
     images?: string[];
     videos?: string[];
   }) {
-    const response = await apiClient.instance.put(`/api/v1/posts/${postId}`, data);
+    const response = await apiClient.instance.put(`/posts/${postId}`, data);
     return response.data.data;
   },
 
@@ -67,7 +67,7 @@ export const postsApi = {
    * Delete a post
    */
   async delete(postId: string) {
-    const response = await apiClient.instance.delete(`/api/v1/posts/${postId}`);
+    const response = await apiClient.instance.delete(`/posts/${postId}`);
     return response.data.data;
   },
 
@@ -75,7 +75,7 @@ export const postsApi = {
    * Get comments for a post
    */
   async getComments(postId: string, page: number = 1, limit: number = 20) {
-    const response = await apiClient.instance.get(`/api/v1/posts/${postId}/comments`, {
+    const response = await apiClient.instance.get(`/posts/${postId}/comments`, {
       params: { page, limit },
     });
     return response.data.data;
@@ -85,7 +85,7 @@ export const postsApi = {
    * Create a comment
    */
   async createComment(postId: string, content: string, parentId?: string) {
-    const response = await apiClient.instance.post(`/api/v1/posts/${postId}/comments`, {
+    const response = await apiClient.instance.post(`/posts/${postId}/comments`, {
       content,
       parentId,
     });
@@ -96,7 +96,7 @@ export const postsApi = {
    * Update a comment
    */
   async updateComment(commentId: string, content: string) {
-    const response = await apiClient.instance.put(`/api/v1/posts/comments/${commentId}`, {
+    const response = await apiClient.instance.put(`/posts/comments/${commentId}`, {
       content,
     });
     return response.data.data;
@@ -106,7 +106,7 @@ export const postsApi = {
    * Delete a comment
    */
   async deleteComment(commentId: string) {
-    const response = await apiClient.instance.delete(`/api/v1/posts/comments/${commentId}`);
+    const response = await apiClient.instance.delete(`/posts/comments/${commentId}`);
     return response.data.data;
   },
 
@@ -114,7 +114,7 @@ export const postsApi = {
    * Like or unlike a post
    */
   async toggleLike(postId: string) {
-    const response = await apiClient.instance.post(`/api/v1/posts/${postId}/like`);
+    const response = await apiClient.instance.post(`/posts/${postId}/like`);
     return response.data.data;
   },
 };

@@ -5,7 +5,7 @@ export const neighborhoodsApi = {
    * Get all neighborhoods
    */
   async getAll(city?: string, search?: string) {
-    const response = await apiClient.instance.get('/api/v1/neighborhoods', {
+    const response = await apiClient.instance.get('/neighborhoods', {
       params: { city, search },
     });
     return response.data.data;
@@ -15,7 +15,7 @@ export const neighborhoodsApi = {
    * Get a single neighborhood by ID
    */
   async getOne(id: string) {
-    const response = await apiClient.instance.get(`/api/v1/neighborhoods/${id}`);
+    const response = await apiClient.instance.get(`/neighborhoods/${id}`);
     return response.data.data;
   },
 };
