@@ -53,6 +53,17 @@ const registerSchema = z.object({
     .min(10, 'Phone number must be at least 10 digits')
     .max(15, 'Phone number must be less than 15 digits')
     .regex(/^[\d+\-\s()]+$/, 'Please enter a valid phone number')
+    .refine(
+      (val) => {
+        // Remove all non-digit characters for validation
+        const digitsOnly = val.replace(/\D/g, '');
+        // Must have at least 10 digits (international format)
+        return digitsOnly.length >= 10 && digitsOnly.length <= 15;
+      },
+      {
+        message: 'Please enter a valid phone number (e.g., +254712345678)',
+      }
+    )
     .trim(),
   address: z.string().optional().transform((val) => val?.trim() || undefined),
 }).refine((data) => data.password === data.confirmPassword, {

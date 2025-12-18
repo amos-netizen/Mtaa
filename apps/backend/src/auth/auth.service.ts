@@ -280,14 +280,26 @@ export class AuthService {
   /**
    * Login with password
    * Validates credentials and returns tokens
+   * Supports both email and phone number login
    */
   async loginWithPassword(loginPasswordDto: LoginPasswordDto) {
-    const { email, password } = loginPasswordDto;
+    const { email, phoneNumber, password } = loginPasswordDto;
 
-    // Find user by email
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    if (!email && !phoneNumber) {
+      throw new BadRequestException('Either email or phone number is required');
+    }
+
+    // Find user by email or phone number
+    let user;
+    if (email) {
+      user = await this.prisma.user.findUnique({
+        where: { email },
+      });
+    } else if (phoneNumber) {
+      user = await this.prisma.user.findUnique({
+        where: { phoneNumber },
+      });
+    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');

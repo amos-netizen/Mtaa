@@ -39,13 +39,18 @@ export const authApi = {
   },
 
   /**
-   * Login with email and password
+   * Login with email/phone and password
+   * Supports both email and phone number login
    */
-  async loginWithPassword(email: string, password: string): Promise<AuthTokens & { user: any }> {
-    const response = await apiClient.instance.post('/api/v1/auth/login', {
-      email,
-      password,
-    });
+  async loginWithPassword(emailOrPhone: string, password: string): Promise<AuthTokens & { user: any }> {
+    // Determine if input is email or phone number
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrPhone);
+    
+    const loginData = isEmail
+      ? { email: emailOrPhone, password }
+      : { phoneNumber: emailOrPhone, password };
+    
+    const response = await apiClient.instance.post('/api/v1/auth/login', loginData);
     return response.data.data;
   },
 

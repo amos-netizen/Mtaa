@@ -9,7 +9,20 @@ import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  emailOrPhone: z
+    .string()
+    .min(1, 'Email or phone number is required')
+    .refine(
+      (val) => {
+        // Check if it's a valid email or phone number
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+        const isPhone = /^[\d+\-\s()]+$/.test(val) && val.replace(/\D/g, '').length >= 10;
+        return isEmail || isPhone;
+      },
+      {
+        message: 'Please enter a valid email address or phone number',
+      }
+    ),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
@@ -33,9 +46,9 @@ export default function LoginPage() {
     setMessage(null);
     
     try {
-      console.log('Sending login request with data:', { email: data.email });
+      console.log('Sending login request with data:', { emailOrPhone: data.emailOrPhone });
       
-      const result = await authApi.loginWithPassword(data.email, data.password);
+      const result = await authApi.loginWithPassword(data.emailOrPhone, data.password);
 
       console.log('Login response:', result);
 
@@ -84,7 +97,7 @@ export default function LoginPage() {
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold">Sign in to Mtaa</h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Enter your email and password to continue
+            Enter your email or phone number and password to continue
           </p>
         </div>
         
@@ -113,19 +126,23 @@ export default function LoginPage() {
         )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email Address
+            <label htmlFor="emailOrPhone" className="block text-sm font-medium mb-2">
+              Email or Phone Number
             </label>
             <input
-              {...register('email')}
-              type="email"
+              {...register('emailOrPhone')}
+              type="text"
               required
+              autoComplete="username"
               className="relative block w-full rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-500 focus:z-10 focus:border-primary-500 focus:outline-none focus:ring-primary-500"
-              placeholder="your.email@example.com"
+              placeholder="your.email@example.com or +254712345678"
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            {errors.emailOrPhone && (
+              <p className="mt-1 text-sm text-red-600">{errors.emailOrPhone.message}</p>
             )}
+            <p className="mt-1 text-xs text-gray-500">
+              You can sign in with your email address or phone number
+            </p>
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-2">
