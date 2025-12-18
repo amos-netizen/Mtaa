@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class PostsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   /**
    * Get all posts
@@ -170,6 +174,41 @@ export class PostsService {
         },
       },
     });
+
+    // Send emergency alert emails if this is a safety alert
+    if (data.type === 'SAFETY_ALERT' && post.neighborhood) {
+      // Get all users in the neighborhood who have email notifications enabled
+      const neighborhoodUsers = await this.prisma.userNeighborhood.findMany({
+        where: {
+          neighborhoodId: data.neighborhoodId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              fullName: true,
+            },
+          },
+        },
+      });
+
+      // Send email to each user in the neighborhood (asynchronously)
+      neighborhoodUsers.forEach((userNeighborhood) => {
+        if (userNeighborhood.user.email) {
+          this.emailService.sendEmergencyAlertEmail(
+            userNeighborhood.user.email,
+            data.title,
+            data.description,
+            data.category || 'OTHER',
+            post.neighborhood.name
+          ).catch((error) => {
+            console.error(`Failed to send alert email to ${userNeighborhood.user.email}:`, error);
+            // Don't throw - alert should be created even if emails fail
+          });
+        }
+      });
+    }
 
     return {
       ...post,
