@@ -16,34 +16,34 @@ datasource db {
 // Valid values for verificationStatus: "PENDING", "VERIFIED", "REJECTED"
 
 model User {
-  id                       String    @id @default(cuid())
-  username                 String    @unique
-  email                    String?   @unique
-  phoneNumber              String    @unique
-  passwordHash             String
-  fullName                 String
-  profileImageUrl          String?
-  bio                      String? // Max 150 characters
-  address                  String?
-  latitude                 Float?
-  longitude                Float?
-  locationVerified         Boolean   @default(false)
-  verificationStatus       String    @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
-  role                     String    @default("REGULAR_MEMBER") // "REGULAR_MEMBER", "NEIGHBORHOOD_LEAD", "BUSINESS", "PUBLIC_AGENCY", "ADMIN"
-  languagePreference       String    @default("en") // "en" or "sw"
-  mpesaNumber              String?
-  isActive                 Boolean   @default(true)
-  isBanned                 Boolean   @default(false)
-  banReason                String?
-  banExpiresAt             DateTime?
-  emailVerified            Boolean   @default(false)
-  emailVerificationToken   String?
-  emailVerificationExpires DateTime?
-  passwordResetToken       String?
-  passwordResetExpires     DateTime?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
-  lastSeenAt               DateTime?
+  id                         String    @id @default(cuid())
+  username                   String    @unique
+  email                      String?   @unique
+  phoneNumber                String    @unique
+  passwordHash               String
+  fullName                   String
+  profileImageUrl            String?
+  bio                        String? // Max 150 characters
+  address                    String?
+  latitude                   Float?
+  longitude                  Float?
+  locationVerified           Boolean   @default(false)
+  verificationStatus         String    @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
+  role                       String    @default("REGULAR_MEMBER") // "REGULAR_MEMBER", "NEIGHBORHOOD_LEAD", "BUSINESS", "PUBLIC_AGENCY", "ADMIN"
+  languagePreference         String    @default("en") // "en" or "sw"
+  mpesaNumber                String?
+  isActive                   Boolean   @default(true)
+  isBanned                   Boolean   @default(false)
+  banReason                  String?
+  banExpiresAt               DateTime?
+  emailVerified              Boolean   @default(false)
+  emailVerificationToken     String?
+  emailVerificationExpiresAt DateTime?
+  passwordResetToken         String?
+  passwordResetExpiresAt     DateTime?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  lastSeenAt                 DateTime?
 
   // Relations
   posts                Post[]
