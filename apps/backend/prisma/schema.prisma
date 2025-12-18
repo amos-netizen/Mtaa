@@ -63,6 +63,7 @@ model User {
   agencyProfile        AgencyProfile?
   trustedMemberBadge   Boolean              @default(false) // Government ID verified
   addedPlaces          Place[]
+  reviews              Review[]
 }
 
 // ============================================
