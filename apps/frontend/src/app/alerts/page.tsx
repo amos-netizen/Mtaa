@@ -32,7 +32,7 @@ const LocationPicker = dynamic(() => import('@/components/maps/LocationPicker'),
 });
 
 type ViewMode = 'list' | 'map';
-type AlertType = 'CRIME' | 'FIRE' | 'ACCIDENT' | 'SUSPICIOUS_ACTIVITY' | 'NATURAL_DISASTER' | 'OTHER';
+type AlertType = 'CRIME' | 'FIRE' | 'ACCIDENT' | 'SUSPICIOUS_ACTIVITY' | 'NATURAL_DISASTER' | 'POWER_OUTAGE' | 'OTHER';
 
 const ALERT_TYPE_OPTIONS: { value: AlertType; label: string; icon: string }[] = [
   { value: 'CRIME', label: 'Crime', icon: '🚔' },
@@ -40,7 +40,22 @@ const ALERT_TYPE_OPTIONS: { value: AlertType; label: string; icon: string }[] = 
   { value: 'ACCIDENT', label: 'Accident', icon: '🚗' },
   { value: 'SUSPICIOUS_ACTIVITY', label: 'Suspicious Activity', icon: '👁️' },
   { value: 'NATURAL_DISASTER', label: 'Natural Disaster', icon: '🌪️' },
+  { value: 'POWER_OUTAGE', label: 'Power Outage', icon: '⚡' },
   { value: 'OTHER', label: 'Other', icon: '⚠️' },
+];
+
+// Kenya Emergency Contacts
+const KENYA_EMERGENCY_CONTACTS = [
+  { name: 'Emergency Services', number: '999', description: 'Police, Fire, Ambulance', icon: '🚨' },
+  { name: 'Emergency Services (Alternative)', number: '112', description: 'Police, Fire, Ambulance', icon: '📞' },
+  { name: 'Kenya Police', number: '999', description: 'General Police Emergency', icon: '🚔' },
+  { name: 'Fire Department', number: '999', description: 'Fire Emergency', icon: '🔥' },
+  { name: 'Ambulance', number: '999', description: 'Medical Emergency', icon: '🚑' },
+  { name: 'Kenya Power', number: '97771', description: 'Power Outage Reports', icon: '⚡' },
+  { name: 'Kenya Power (Toll Free)', number: '0800 221 111', description: 'Power Outage Reports', icon: '⚡' },
+  { name: 'Nairobi Water', number: '0800 720 720', description: 'Water Issues', icon: '💧' },
+  { name: 'Child Helpline', number: '116', description: 'Child Protection', icon: '👶' },
+  { name: 'Gender Violence', number: '1195', description: 'Gender-Based Violence', icon: '🛡️' },
 ];
 
 export default function AlertsPage() {
@@ -54,12 +69,24 @@ export default function AlertsPage() {
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('');
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    alertType: AlertType;
+    isUrgent: boolean;
+    location: { lat: number; lng: number } | null;
+    organization?: string;
+    startTime?: string;
+    endTime?: string;
+  }>({
     title: '',
     description: '',
-    alertType: 'OTHER' as AlertType,
+    alertType: 'OTHER',
     isUrgent: false,
-    location: null as { lat: number; lng: number } | null,
+    location: null,
+    organization: undefined,
+    startTime: undefined,
+    endTime: undefined,
   });
 
   useEffect(() => {
@@ -176,17 +203,32 @@ export default function AlertsPage() {
         return;
       }
 
+      const metadata: any = {
+        alertType: formData.alertType,
+        isUrgent: formData.isUrgent,
+        location: formData.location,
+      };
+
+      // Add power outage specific fields
+      if (formData.alertType === 'POWER_OUTAGE') {
+        if (formData.organization) {
+          metadata.organization = formData.organization;
+        }
+        if (formData.startTime) {
+          metadata.startTime = new Date(formData.startTime).toISOString();
+        }
+        if (formData.endTime) {
+          metadata.endTime = new Date(formData.endTime).toISOString();
+        }
+      }
+
       await postsApi.create({
         title: formData.title,
         description: formData.description,
         neighborhoodId,
         type: 'SAFETY_ALERT',
         category: 'SAFETY',
-        metadata: {
-          alertType: formData.alertType,
-          isUrgent: formData.isUrgent,
-          location: formData.location,
-        },
+        metadata,
       });
 
       // Refresh alerts
@@ -198,7 +240,10 @@ export default function AlertsPage() {
         description: '', 
         alertType: 'OTHER', 
         isUrgent: false, 
-        location: null 
+        location: null,
+        organization: undefined,
+        startTime: undefined,
+        endTime: undefined,
       });
       setShowForm(false);
     } catch (error) {
@@ -228,6 +273,15 @@ export default function AlertsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard"
+                className="text-red-100 hover:text-white transition-colors flex items-center gap-1 mr-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Dashboard
+              </Link>
               <span className="text-3xl animate-pulse">🚨</span>
               <div>
                 <h1 className="text-2xl font-bold text-white">Emergency Alerts</h1>
@@ -235,12 +289,6 @@ export default function AlertsPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="text-red-100 hover:text-white transition-colors"
-              >
-                Dashboard
-              </Link>
               <button
                 onClick={() => setShowForm(!showForm)}
                 className="px-4 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center gap-2"
@@ -257,6 +305,35 @@ export default function AlertsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Emergency Contacts */}
+        <div className="mb-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span>📞</span> Kenya Emergency Contacts
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {KENYA_EMERGENCY_CONTACTS.map((contact, index) => (
+              <div
+                key={index}
+                className="bg-white/10 backdrop-blur-sm rounded-lg p-4 hover:bg-white/20 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{contact.icon}</span>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white mb-1">{contact.name}</h3>
+                    <a
+                      href={`tel:${contact.number.replace(/\s/g, '')}`}
+                      className="text-2xl font-bold text-yellow-300 hover:text-yellow-200 transition-colors block mb-1"
+                    >
+                      {contact.number}
+                    </a>
+                    <p className="text-sm text-blue-100">{contact.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Important Notice */}
         <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -401,6 +478,48 @@ export default function AlertsPage() {
                 />
               </div>
 
+              {/* Power Outage Specific Fields */}
+              {formData.alertType === 'POWER_OUTAGE' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Organization (e.g., Kenya Power)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.organization}
+                      onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      placeholder="e.g., Kenya Power, NEMA"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Power Outage Start Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.startTime || ''}
+                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value || undefined })}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Power Outage End Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.endTime || ''}
+                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value || undefined })}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* Location Picker */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -535,9 +654,14 @@ export default function AlertsPage() {
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                             {alert.title}
                           </h3>
+                          {alert.isPinned && (
+                            <span className="px-2 py-1 bg-yellow-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                              📌 PINNED
+                            </span>
+                          )}
                           {alert.metadata?.isUrgent && (
                             <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full animate-pulse">
-                              URGENT
+                              ⚡ URGENT
                             </span>
                           )}
                         </div>
@@ -553,8 +677,37 @@ export default function AlertsPage() {
                   <p className="text-gray-700 dark:text-gray-300 mb-4">
                     {alert.description}
                   </p>
+                  {alert.metadata?.alertType === 'POWER_OUTAGE' && (alert.metadata?.startTime || alert.metadata?.endTime) && (
+                    <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                      <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                        ⚡ Power Outage Schedule:
+                      </p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                        {alert.metadata?.startTime && (
+                          <span>From: {new Date(alert.metadata.startTime).toLocaleString('en-KE', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        )}
+                        {alert.metadata?.startTime && alert.metadata?.endTime && <span> • </span>}
+                        {alert.metadata?.endTime && (
+                          <span>To: {new Date(alert.metadata.endTime).toLocaleString('en-KE', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        )}
+                      </p>
+                      {alert.metadata?.organization && (
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                          Posted by: {alert.metadata.organization}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                     <span>Posted by {alert.author?.fullName || 'Community Member'}</span>
+                    {alert.metadata?.organization && (
+                      <>
+                        <span>•</span>
+                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
+                          {alert.metadata.organization}
+                        </span>
+                      </>
+                    )}
                     <span>•</span>
                     <span>{alert.likeCount || 0} confirmations</span>
                     {alert.metadata?.location && (
@@ -575,29 +728,6 @@ export default function AlertsPage() {
           </div>
         )}
 
-        {/* Emergency Contacts */}
-        <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            📞 Emergency Contacts
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a href="tel:999" className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition">
-              <p className="font-semibold text-red-900 dark:text-red-200">Police Emergency</p>
-              <p className="text-2xl font-bold text-red-600">999 / 112</p>
-              <p className="text-sm text-red-700 dark:text-red-300 mt-1">Tap to call</p>
-            </a>
-            <a href="tel:999" className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition">
-              <p className="font-semibold text-orange-900 dark:text-orange-200">Fire Brigade</p>
-              <p className="text-2xl font-bold text-orange-600">999</p>
-              <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">Tap to call</p>
-            </a>
-            <a href="tel:999" className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
-              <p className="font-semibold text-blue-900 dark:text-blue-200">Ambulance</p>
-              <p className="text-2xl font-bold text-blue-600">999</p>
-              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">Tap to call</p>
-            </a>
-          </div>
-        </div>
       </main>
     </div>
   );

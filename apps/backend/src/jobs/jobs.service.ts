@@ -39,6 +39,7 @@ export class JobsService {
             select: {
               id: true,
               name: true,
+              city: true,
             },
           },
         },

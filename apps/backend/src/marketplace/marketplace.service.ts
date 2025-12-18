@@ -57,6 +57,7 @@ export class MarketplaceService {
             select: {
               id: true,
               name: true,
+              city: true,
             },
           },
           post: {
@@ -100,6 +101,7 @@ export class MarketplaceService {
             fullName: true,
             profileImageUrl: true,
             phoneNumber: true,
+            email: true,
           },
         },
         neighborhood: {

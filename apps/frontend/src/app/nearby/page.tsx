@@ -43,10 +43,42 @@ export default function NearbyPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showLocationTracker, setShowLocationTracker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
+  const [useTestLocation, setUseTestLocation] = useState(false);
+
+  // Test location for Kiambu Road (for development/testing)
+  const testLocation = { lat: -1.2800, lng: 36.8000 };
+
+  // Automatically request location on page load
+  useEffect(() => {
+    if (!latitude && !longitude && !locationLoading && !hasRequestedLocation && !useTestLocation) {
+      setHasRequestedLocation(true);
+      // Small delay to ensure page is fully loaded
+      const timer = setTimeout(() => {
+        requestLocation();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [latitude, longitude, locationLoading, hasRequestedLocation, requestLocation, useTestLocation]);
+
+  // Show success message when location is detected
+  useEffect(() => {
+    if (latitude && longitude) {
+      console.log('✅ Location detected:', latitude, longitude);
+      console.log('📍 Fetching nearby activities...');
+    }
+  }, [latitude, longitude]);
+
+  // Use test location if enabled
+  const currentLat = useTestLocation ? testLocation.lat : latitude;
+  const currentLng = useTestLocation ? testLocation.lng : longitude;
 
   // Fetch nearby items from API when location changes
   const fetchNearbyItems = useCallback(async () => {
-    if (!latitude || !longitude) return;
+    const lat = useTestLocation ? testLocation.lat : latitude;
+    const lng = useTestLocation ? testLocation.lng : longitude;
+    
+    if (!lat || !lng) return;
     
     setIsLoading(true);
     try {
@@ -57,8 +89,8 @@ export default function NearbyPage() {
         : [selectedType];
       
       const response = await nearbyApi.getAll({
-        latitude,
-        longitude,
+        latitude: lat,
+        longitude: lng,
         radius: radiusKm,
         types,
         limit: 100,
@@ -71,7 +103,7 @@ export default function NearbyPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [latitude, longitude, radiusKm, selectedType]);
+  }, [latitude, longitude, radiusKm, selectedType, useTestLocation]);
 
   useEffect(() => {
     fetchNearbyItems();
@@ -83,19 +115,35 @@ export default function NearbyPage() {
 
     // Apply search filter if query exists
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
+      const searchTerms = query.split(/\s+/).filter(term => term.length > 0); // Split into search terms
+      
       filtered = filtered.filter((item: any) => {
-        const titleMatch = item.title?.toLowerCase().includes(query);
-        const descMatch = item.description?.toLowerCase().includes(query);
-        const categoryMatch = item.data?.category?.toLowerCase().includes(query);
-        const authorMatch = item.data?.author?.fullName?.toLowerCase().includes(query);
-        const addressMatch = item.data?.address?.toLowerCase().includes(query);
-        const placeCategoryMatch = item.type === 'place' && (
-          item.data?.category === 'HOSPITAL' && (query.includes('hospital') || query.includes('hospital') || query.includes('clinic')) ||
-          item.data?.category === 'PHARMACY' && (query.includes('pharmacy') || query.includes('drug') || query.includes('medicine')) ||
-          item.data?.category === 'CLINIC' && (query.includes('clinic') || query.includes('hospital') || query.includes('doctor'))
-        );
-        return titleMatch || descMatch || categoryMatch || authorMatch || addressMatch || placeCategoryMatch;
+        // If multiple terms, all must match (AND logic)
+        return searchTerms.every(term => {
+          const titleMatch = item.title?.toLowerCase().includes(term);
+          const descMatch = item.description?.toLowerCase().includes(term);
+          const categoryMatch = item.data?.category?.toLowerCase().includes(term);
+          const authorMatch = item.data?.author?.fullName?.toLowerCase().includes(term);
+          const addressMatch = item.data?.address?.toLowerCase().includes(term);
+          const phoneMatch = item.data?.phoneNumber?.toLowerCase().includes(term);
+          
+          // Smart matching for place categories
+          const placeCategoryMatch = item.type === 'place' && (
+            (item.data?.category === 'HOSPITAL' && (term.includes('hospital') || term.includes('clinic') || term.includes('doctor') || term.includes('medical') || term.includes('health'))) ||
+            (item.data?.category === 'PHARMACY' && (term.includes('pharmacy') || term.includes('drug') || term.includes('medicine') || term.includes('chemist'))) ||
+            (item.data?.category === 'CLINIC' && (term.includes('clinic') || term.includes('hospital') || term.includes('doctor') || term.includes('medical'))) ||
+            (item.data?.category === 'BANK' && (term.includes('bank') || term.includes('atm') || term.includes('money') || term.includes('financial'))) ||
+            (item.data?.category === 'POLICE_STATION' && (term.includes('police') || term.includes('security') || term.includes('cop'))) ||
+            (item.data?.category === 'FIRE_STATION' && (term.includes('fire') || term.includes('emergency'))) ||
+            (item.data?.category === 'SCHOOL' && (term.includes('school') || term.includes('education') || term.includes('learn'))) ||
+            (item.data?.category === 'RESTAURANT' && (term.includes('restaurant') || term.includes('food') || term.includes('eat') || term.includes('dine'))) ||
+            (item.data?.category === 'SHOP' && (term.includes('shop') || term.includes('store') || term.includes('buy') || term.includes('mall'))) ||
+            (item.data?.category === 'GAS_STATION' && (term.includes('gas') || term.includes('fuel') || term.includes('petrol') || term.includes('station')))
+          );
+          
+          return titleMatch || descMatch || categoryMatch || authorMatch || addressMatch || phoneMatch || placeCategoryMatch;
+        });
       });
     }
 
@@ -183,10 +231,20 @@ export default function NearbyPage() {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   📍 Nearby
                 </h1>
-                {latitude && longitude ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Showing items within {radiusKm}km of your location
-                  </p>
+                {(currentLat && currentLng) ? (
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Showing items within {radiusKm}km {useTestLocation ? 'of Kiambu Road (Test Location)' : 'of your location'}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      📍 {useTestLocation ? 'Test' : 'Detected'} location: {currentLat.toFixed(4)}, {currentLng.toFixed(4)}
+                    </p>
+                    {nearbyItems.length > 0 && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        ✅ {nearbyItems.length} {nearbyItems.length === 1 ? 'activity' : 'activities'} found nearby
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-yellow-600 dark:text-yellow-400">
                     Enable location to see nearby items
@@ -232,31 +290,86 @@ export default function NearbyPage() {
 
           {/* Search Bar */}
           <div className="mt-4">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search services, items, jobs..."
-                className="w-full px-4 py-2 pl-10 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                // Search is handled by client-side filtering via nearbyItems useMemo
+                // Just ensure we have items loaded
+                if (!currentLat || !currentLng) {
+                  if (useTestLocation) {
+                    fetchNearbyItems();
+                  } else {
+                    requestLocation();
+                  }
+                }
+              }}
+              className="flex gap-2"
+            >
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      // Search filtering happens automatically via nearbyItems useMemo
+                      // Just ensure location is available
+                      if (!currentLat || !currentLng) {
+                        if (useTestLocation) {
+                          fetchNearbyItems();
+                        } else {
+                          requestLocation();
+                        }
+                      }
+                    }
+                  }}
+                  placeholder="Search hospitals, pharmacies, services, items near you..."
+                  className="w-full px-4 py-2 pl-10 pr-10 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  ✕
-                </button>
-              )}
-            </div>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading || (!currentLat && !currentLng && !useTestLocation)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2 shadow-sm hover:shadow-md"
+                title={searchQuery ? `Search for "${searchQuery}" near you` : "Search nearby items"}
+              >
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
+                Search
+              </button>
+            </form>
+            {searchQuery && currentLat && currentLng && (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                🔍 Searching for "{searchQuery}" in activities near your location...
+              </p>
+            )}
           </div>
 
           {/* Filters */}
@@ -299,25 +412,77 @@ export default function NearbyPage() {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Location error/loading state */}
-        {!latitude && !longitude && (
-          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📍</span>
-              <div className="flex-1">
-                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">
-                  Location Required
+        {/* Test location button for development */}
+        {!currentLat && !currentLng && (
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                  🧪 Test with Kiambu Road Location
                 </h3>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  {locationError || 'Enable location access to see items near you'}
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Use test location to see how the app works without granting browser permissions
                 </p>
               </div>
               <button
-                onClick={requestLocation}
-                disabled={locationLoading}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 transition"
+                onClick={() => {
+                  setUseTestLocation(true);
+                  fetchNearbyItems();
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
               >
-                {locationLoading ? 'Getting location...' : 'Enable Location'}
+                Use Test Location
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Location error/loading state */}
+        {!currentLat && !currentLng && (
+          <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl shadow-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-shrink-0">
+                <span className="text-4xl">📍</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-2">
+                  {locationLoading ? 'Detecting Your Location...' : 'Location Access Required'}
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                  {locationLoading 
+                    ? 'Please allow location access in your browser to find nearby services, items, and alerts.'
+                    : locationError 
+                    ? locationError 
+                    : 'To show you nearby items, we need access to your location. Click the button below and allow location access when prompted.'}
+                </p>
+                {locationError && (
+                  <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-700 dark:text-red-300">
+                    <strong>Tip:</strong> Check your browser settings to ensure location permissions are enabled for this site.
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setHasRequestedLocation(true);
+                  requestLocation();
+                }}
+                disabled={locationLoading}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
+              >
+                {locationLoading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Detecting...
+                  </>
+                ) : (
+                  <>
+                    <span>📍</span>
+                    Allow Location Access
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -355,12 +520,12 @@ export default function NearbyPage() {
             <div className={viewMode === 'map' ? 'col-span-full' : ''}>
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                 <MapContainer
-                  center={latitude && longitude ? [latitude, longitude] : [-1.2921, 36.8219]}
+                  center={currentLat && currentLng ? [currentLat, currentLng] : [-1.2921, 36.8219]}
                   zoom={14}
                   height={viewMode === 'map' ? '600px' : '500px'}
                   markers={mapMarkers}
-                  showUserLocation={!!latitude && !!longitude}
-                  userLocation={latitude && longitude ? { lat: latitude, lng: longitude } : null}
+                  showUserLocation={!!currentLat && !!currentLng}
+                  userLocation={currentLat && currentLng ? { lat: currentLat, lng: currentLng } : null}
                   radiusKm={radiusKm}
                 />
               </div>
@@ -373,10 +538,17 @@ export default function NearbyPage() {
               <div className="space-y-3">
                 {/* Results count */}
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {nearbyItems.length} {searchQuery ? 'matching' : ''} items found
-                    {searchQuery && <span className="text-sm font-normal text-gray-500"> for "{searchQuery}"</span>}
-                  </h2>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {nearbyItems.length} {searchQuery ? 'matching' : ''} {nearbyItems.length === 1 ? 'activity' : 'activities'} found
+                      {searchQuery && <span className="text-sm font-normal text-gray-500"> for "{searchQuery}"</span>}
+                    </h2>
+                    {currentLat && currentLng && nearbyItems.length > 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        📍 Showing activities {useTestLocation ? 'near Kiambu Road' : 'near your location'} on the map
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Items list */}

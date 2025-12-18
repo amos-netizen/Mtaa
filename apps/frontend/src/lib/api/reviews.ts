@@ -19,7 +19,7 @@ export const reviewsApi = {
   /**
    * Get reviews for a service or marketplace listing
    */
-  async getReviews(targetId: string, targetType: 'service' | 'marketplace' | 'provider') {
+  async getReviews(targetId: string, targetType: 'MARKETPLACE' | 'SERVICE' | 'PROVIDER' | 'JOB_EMPLOYER') {
     const response = await apiClient.instance.get('/api/v1/reviews', {
       params: { targetId, targetType },
     });
@@ -31,9 +31,9 @@ export const reviewsApi = {
    */
   async createReview(data: {
     targetId: string;
-    targetType: 'service' | 'marketplace' | 'provider';
+    targetType: 'MARKETPLACE' | 'SERVICE' | 'PROVIDER' | 'JOB_EMPLOYER';
     rating: number;
-    comment: string;
+    comment?: string;
   }) {
     const response = await apiClient.instance.post('/api/v1/reviews', data);
     return response.data.data;
@@ -58,7 +58,7 @@ export const reviewsApi = {
   /**
    * Get average rating for a target
    */
-  async getAverageRating(targetId: string, targetType: 'service' | 'marketplace' | 'provider') {
+  async getAverageRating(targetId: string, targetType: 'MARKETPLACE' | 'SERVICE' | 'PROVIDER' | 'JOB_EMPLOYER') {
     const response = await apiClient.instance.get('/api/v1/reviews/average', {
       params: { targetId, targetType },
     });

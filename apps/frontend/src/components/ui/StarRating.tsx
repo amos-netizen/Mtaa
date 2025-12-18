@@ -5,11 +5,13 @@ import { useState } from 'react';
 interface StarRatingProps {
   rating: number;
   onChange?: (rating: number) => void;
+  onRatingChange?: (rating: number) => void;
   readonly?: boolean;
+  interactive?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function StarRating({ rating, onChange, readonly = false, size = 'md' }: StarRatingProps) {
+export function StarRating({ rating, onChange, onRatingChange, readonly = false, interactive = false, size = 'md' }: StarRatingProps) {
   const [hoverRating, setHoverRating] = useState(0);
 
   const sizeClasses = {
@@ -19,10 +21,13 @@ export function StarRating({ rating, onChange, readonly = false, size = 'md' }: 
   };
 
   const handleClick = (value: number) => {
-    if (!readonly && onChange) {
-      onChange(value);
+    if (!readonly && (onChange || onRatingChange)) {
+      onChange?.(value);
+      onRatingChange?.(value);
     }
   };
+
+  const isInteractive = interactive || !readonly;
 
   const displayRating = hoverRating || rating;
 
@@ -33,11 +38,11 @@ export function StarRating({ rating, onChange, readonly = false, size = 'md' }: 
           key={value}
           type="button"
           onClick={() => handleClick(value)}
-          onMouseEnter={() => !readonly && setHoverRating(value)}
-          onMouseLeave={() => !readonly && setHoverRating(0)}
-          disabled={readonly}
+          onMouseEnter={() => isInteractive && setHoverRating(value)}
+          onMouseLeave={() => isInteractive && setHoverRating(0)}
+          disabled={!isInteractive}
           className={`${sizeClasses[size]} transition-colors ${
-            readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'
+            isInteractive ? 'cursor-pointer hover:scale-110' : 'cursor-default'
           }`}
         >
           {value <= displayRating ? (

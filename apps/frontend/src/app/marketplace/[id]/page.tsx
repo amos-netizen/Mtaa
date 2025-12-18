@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { marketplaceApi } from '@/lib/api/marketplace';
 import { postsApi } from '@/lib/api/posts';
 import { authApi } from '@/lib/api/auth';
+import { messagesApi } from '@/lib/api/messages';
+import { ReportButton } from '@/components/ui/ReportButton';
+import { ReviewSection } from '@/components/ui/ReviewSection';
+import { VerificationBadge } from '@/components/ui/VerificationBadge';
 
 export default function ListingDetailPage() {
   const router = useRouter();
@@ -225,37 +229,121 @@ export default function ListingDetailPage() {
               </p>
             </div>
 
-            {listing.pickupLocation && (
-              <div className="mb-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Pickup Location:</p>
-                <p className="text-gray-900 dark:text-white">{listing.pickupLocation}</p>
+            {/* Item Information Section */}
+            <div className="mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                📋 Item Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Category</p>
+                  <p className="text-gray-900 dark:text-white font-medium">{listing.category}</p>
+                </div>
+                {listing.condition && (
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Condition</p>
+                    <p className="text-gray-900 dark:text-white font-medium">{listing.condition}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Price</p>
+                  <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                    {formatPrice(listing.price, listing.isFree)}
+                  </p>
+                </div>
+                {listing.deliveryAvailable && (
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Delivery</p>
+                    <span className="px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-full text-sm font-medium">
+                      ✓ Delivery Available
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
-            {listing.deliveryAvailable && (
-              <div className="mb-4">
-                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-full text-sm">
-                  Delivery Available
-                </span>
-              </div>
-            )}
+            {/* Location Section */}
+            <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <span>📍</span> Location
+              </h2>
+              {listing.pickupLocation ? (
+                <div>
+                  <p className="text-gray-900 dark:text-white font-medium mb-2">
+                    {listing.pickupLocation}
+                  </p>
+                  {listing.neighborhood && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {listing.neighborhood.name} - {listing.neighborhood.city}
+                    </p>
+                  )}
+                </div>
+              ) : listing.neighborhood ? (
+                <p className="text-gray-900 dark:text-white font-medium">
+                  {listing.neighborhood.name} - {listing.neighborhood.city}
+                </p>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">Location not specified</p>
+              )}
+              {listing.latitude && listing.longitude && (
+                <button
+                  onClick={() => window.open(`https://www.google.com/maps?q=${listing.latitude},${listing.longitude}`, '_blank')}
+                  className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <span>🗺️</span> View on Map
+                </button>
+              )}
+            </div>
 
-            {/* Seller Info */}
+            {/* Seller Info with Contact */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Seller
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                👤 Seller Information
               </h3>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
                   {listing.author?.fullName?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {listing.author?.fullName}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg">
+                      {listing.author?.fullName}
+                    </p>
+                    <VerificationBadge
+                      verificationStatus={listing.author?.verificationStatus}
+                      trustedMemberBadge={listing.author?.trustedMemberBadge}
+                      size="sm"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                     @{listing.author?.username}
                   </p>
+                  
+                  {/* Contact Information */}
+                  <div className="space-y-2">
+                    {listing.author?.phoneNumber && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 dark:text-gray-400">📞</span>
+                        <a
+                          href={`tel:${listing.author.phoneNumber.replace(/\s/g, '')}`}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                        >
+                          {listing.author.phoneNumber}
+                        </a>
+                      </div>
+                    )}
+                    {listing.author?.email && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 dark:text-gray-400">✉️</span>
+                        <a
+                          href={`mailto:${listing.author.email}`}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                        >
+                          {listing.author.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -269,6 +357,27 @@ export default function ListingDetailPage() {
                 <span>❤️</span>
                 <span>{listing.post?.likeCount || 0} Likes</span>
               </button>
+              
+              {/* Chat with Owner Button - Show for non-owners */}
+              {listing.authorId !== currentUser?.id && (
+                <button
+                  onClick={async () => {
+                    try {
+                      // Get or create conversation with seller
+                      const conversation = await messagesApi.getOrCreateConversation(listing.authorId);
+                      // Navigate to messages page with conversation
+                      router.push(`/messages?conversation=${conversation.id}`);
+                    } catch (error: any) {
+                      console.error('Failed to start conversation:', error);
+                      alert(error.response?.data?.message || 'Failed to start conversation. Please try again.');
+                    }
+                  }}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2"
+                >
+                  <span>💬</span>
+                  Chat with Owner
+                </button>
+              )}
               
               {/* Buy Now Button - Show for non-owners and non-sold items */}
               {listing.authorId !== currentUser?.id && !listing.isSold && (
@@ -286,10 +395,16 @@ export default function ListingDetailPage() {
                       }
                     }
                   }}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2"
                 >
+                  <span>🛒</span>
                   Buy Now
                 </button>
+              )}
+
+              {/* Report Button - Show for non-owners */}
+              {listing.authorId !== currentUser?.id && listing.post?.id && (
+                <ReportButton postId={listing.post.id} postType="marketplace" />
               )}
 
               {/* Edit and Delete - Show for owner */}
@@ -400,6 +515,11 @@ export default function ListingDetailPage() {
               ))
             )}
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <ReviewSection targetId={listingId} targetType="MARKETPLACE" />
         </div>
       </main>
     </div>

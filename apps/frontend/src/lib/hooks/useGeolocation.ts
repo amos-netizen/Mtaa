@@ -221,6 +221,7 @@ export const KENYA_LOCATIONS = {
   parklands: { lat: -1.2608, lon: 36.8186, name: 'Parklands' },
   lavington: { lat: -1.2783, lon: 36.7678, name: 'Lavington' },
   upperhill: { lat: -1.2956, lon: 36.8167, name: 'Upper Hill' },
+  kiambuRoad: { lat: -1.2800, lon: 36.8000, name: 'Kiambu Road' },
 };
 
 export const DEFAULT_LOCATION = KENYA_LOCATIONS.nairobi;

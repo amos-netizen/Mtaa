@@ -15,6 +15,8 @@ import { BookingsModule } from './bookings/bookings.module';
 import { UploadModule } from './upload/upload.module';
 import { NearbyModule } from './nearby/nearby.module';
 import { PlacesModule } from './places/places.module';
+import { ReportsModule } from './reports/reports.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { AppController } from './app.controller';
 
 /**
@@ -39,6 +41,8 @@ import { AppController } from './app.controller';
     UploadModule,
     NearbyModule,
     PlacesModule,
+    ReportsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
 })

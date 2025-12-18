@@ -15,7 +15,7 @@ const MapContainer = dynamic(() => import('./MapContainer'), {
 
 export interface SafetyAlert {
   id: string;
-  type: 'CRIME' | 'FIRE' | 'ACCIDENT' | 'SUSPICIOUS_ACTIVITY' | 'NATURAL_DISASTER' | 'OTHER';
+  type: 'CRIME' | 'FIRE' | 'ACCIDENT' | 'SUSPICIOUS_ACTIVITY' | 'NATURAL_DISASTER' | 'POWER_OUTAGE' | 'OTHER';
   title: string;
   description: string;
   lat: number;
@@ -44,6 +44,7 @@ const ALERT_TYPE_CONFIG: Record<string, { icon: string; color: string; label: st
   ACCIDENT: { icon: '🚗', color: '#eab308', label: 'Accident' },
   SUSPICIOUS_ACTIVITY: { icon: '👁️', color: '#8b5cf6', label: 'Suspicious' },
   NATURAL_DISASTER: { icon: '🌪️', color: '#06b6d4', label: 'Disaster' },
+  POWER_OUTAGE: { icon: '⚡', color: '#fbbf24', label: 'Power Outage' },
   OTHER: { icon: '⚠️', color: '#6b7280', label: 'Other' },
 };
 
