@@ -331,8 +331,8 @@ export default function SettingsPage() {
 
                 {/* Profile Picture */}
                 <div className="flex items-center gap-6">
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-full bg-primary-600 flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+                  <div className="relative group">
+                    <div className="w-32 h-32 rounded-full bg-primary-600 flex items-center justify-center text-white text-4xl font-bold overflow-hidden ring-4 ring-primary-200 dark:ring-primary-800">
                       {user?.profileImageUrl ? (
                         <img src={user.profileImageUrl} alt={user.fullName} className="w-full h-full object-cover" />
                       ) : (
@@ -344,25 +344,46 @@ export default function SettingsPage() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                       </div>
                     )}
+                    <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <span className="text-white text-sm font-medium">📷</span>
+                    </div>
                   </div>
-                  <div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Profile Photo</h3>
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
                       onChange={handleProfileImageUpload}
                       className="hidden"
                       id="profile-image-upload"
                     />
                     <label
                       htmlFor="profile-image-upload"
-                      className="inline-block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer transition-colors"
+                      className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer transition-colors font-medium shadow-md hover:shadow-lg"
                     >
-                      {uploadingProfileImage ? 'Uploading...' : 'Change Picture'}
+                      {uploadingProfileImage ? '⏳ Uploading...' : '📸 Upload Photo'}
                     </label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      JPG, PNG or GIF. Max size 5MB
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                      Supported formats: JPG, PNG, WebP. Maximum file size: 5MB
                     </p>
+                    {user?.profileImageUrl && (
+                      <button
+                        onClick={() => {
+                          if (confirm('Are you sure you want to remove your profile photo?')) {
+                            usersApi.updateProfile({ profileImageUrl: '' }).then(() => {
+                              authApi.getMe().then(setUser);
+                              setMessage({ type: 'success', text: 'Profile photo removed successfully!' });
+                            }).catch((error: any) => {
+                              setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to remove photo' });
+                            });
+                          }
+                        }}
+                        className="mt-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        Remove photo
+                      </button>
+                    )}
                   </div>
                 </div>
 

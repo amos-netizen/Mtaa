@@ -215,11 +215,15 @@ export default function CreateEventPage() {
                 <input
                   {...register('startDate')}
                   type="datetime-local"
+                  min={new Date().toISOString().slice(0, 16)}
                   className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                 />
                 {errors.startDate && (
                   <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Select when your event starts
+                </p>
               </div>
 
               <div>
@@ -229,8 +233,12 @@ export default function CreateEventPage() {
                 <input
                   {...register('endDate')}
                   type="datetime-local"
+                  min={watch('startDate') || new Date().toISOString().slice(0, 16)}
                   className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                 />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Select when your event ends (if applicable)
+                </p>
               </div>
             </div>
 
