@@ -5,6 +5,6 @@
   "installCommand": "cd ../.. && npm install",
   "devCommand": "cd ../.. && npm run dev --workspace=@mtaa/frontend",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://mtaa-16.onrender.com"
+    "NEXT_PUBLIC_API_URL": "https://mtaa-16.onrender.com/api/v1"
   }
 }
