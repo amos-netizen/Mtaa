@@ -16,34 +16,34 @@ datasource db {
 // Valid values for verificationStatus: "PENDING", "VERIFIED", "REJECTED"
 
 model User {
-  id                 String    @id @default(cuid())
-  username           String    @unique
-  email              String?   @unique
-  phoneNumber        String    @unique
-  passwordHash       String
-  fullName           String
-  profileImageUrl    String?
-  bio                String? // Max 150 characters
-  address            String?
-  latitude           Float?
-  longitude          Float?
-  locationVerified   Boolean   @default(false)
-  verificationStatus String    @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
-  role               String    @default("REGULAR_MEMBER") // "REGULAR_MEMBER", "NEIGHBORHOOD_LEAD", "BUSINESS", "PUBLIC_AGENCY", "ADMIN"
-  languagePreference String    @default("en") // "en" or "sw"
-  mpesaNumber        String?
-  isActive           Boolean   @default(true)
-  isBanned           Boolean   @default(false)
-  banReason          String?
-  banExpiresAt       DateTime?
-  emailVerified      Boolean   @default(false)
-  emailVerificationToken String?
+  id                       String    @id @default(cuid())
+  username                 String    @unique
+  email                    String?   @unique
+  phoneNumber              String    @unique
+  passwordHash             String
+  fullName                 String
+  profileImageUrl          String?
+  bio                      String? // Max 150 characters
+  address                  String?
+  latitude                 Float?
+  longitude                Float?
+  locationVerified         Boolean   @default(false)
+  verificationStatus       String    @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
+  role                     String    @default("REGULAR_MEMBER") // "REGULAR_MEMBER", "NEIGHBORHOOD_LEAD", "BUSINESS", "PUBLIC_AGENCY", "ADMIN"
+  languagePreference       String    @default("en") // "en" or "sw"
+  mpesaNumber              String?
+  isActive                 Boolean   @default(true)
+  isBanned                 Boolean   @default(false)
+  banReason                String?
+  banExpiresAt             DateTime?
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?
   emailVerificationExpires DateTime?
-  passwordResetToken String?
-  passwordResetExpires DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  lastSeenAt         DateTime?
+  passwordResetToken       String?
+  passwordResetExpires     DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  lastSeenAt               DateTime?
 
   // Relations
   posts                Post[]
@@ -205,7 +205,7 @@ model SafetyAlert {
   address       String?
   isUrgent      Boolean   @default(true)
   isVerified    Boolean   @default(false)
-  organization  String?   // "KENYA_POWER", "NEMA", etc. for official alerts
+  organization  String? // "KENYA_POWER", "NEMA", etc. for official alerts
   startTime     DateTime? // For scheduled alerts like power outages
   endTime       DateTime? // For scheduled alerts like power outages
   expiresAt     DateTime? // 24-hour auto-expiry
@@ -467,14 +467,14 @@ model Report {
 // Valid values for targetType: "MARKETPLACE", "SERVICE", "PROVIDER", "JOB_EMPLOYER"
 
 model Review {
-  id          String   @id @default(cuid())
-  targetId    String // ID of the item being reviewed (listing, service, user)
-  targetType  String // "MARKETPLACE", "SERVICE", "PROVIDER", "JOB_EMPLOYER"
-  rating      Int // 1-5 stars
-  comment     String?
-  isVerified  Boolean  @default(false) // Verified purchase/service
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  targetId   String // ID of the item being reviewed (listing, service, user)
+  targetType String // "MARKETPLACE", "SERVICE", "PROVIDER", "JOB_EMPLOYER"
+  rating     Int // 1-5 stars
+  comment    String?
+  isVerified Boolean  @default(false) // Verified purchase/service
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relations
   authorId String
