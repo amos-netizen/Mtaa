@@ -504,7 +504,7 @@ export class AuthService {
       where: { id: user.id },
       data: {
         passwordResetToken: resetToken,
-        passwordResetExpires: expiresAt,
+        passwordResetExpiresAt: expiresAt,
       },
     });
 
@@ -528,7 +528,7 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: {
         passwordResetToken: token,
-        passwordResetExpires: {
+        passwordResetExpiresAt: {
           gt: new Date(), // Token not expired
         },
       },
@@ -547,7 +547,7 @@ export class AuthService {
       data: {
         passwordHash,
         passwordResetToken: null,
-        passwordResetExpires: null,
+        passwordResetExpiresAt: null,
       },
     });
 
