@@ -8,8 +8,8 @@ const getApiBaseUrl = (): string => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
-  // Default to production API
-  return 'https://api.mymtaa.com/api/v1';
+  // Default to production API (Render backend)
+  return 'https://mtaa-backend.onrender.com/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
